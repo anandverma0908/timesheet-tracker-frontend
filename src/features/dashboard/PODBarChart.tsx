@@ -28,7 +28,6 @@ export default function PODBarChart({ data, isLoading }: PODBarChartProps) {
         <div className={styles.header}>
           <div>
             <div className="card-title">Hours by POD</div>
-            <div className="card-subtitle">Loading…</div>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '4px 0' }}>
