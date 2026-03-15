@@ -20,9 +20,16 @@
   margin-bottom: 4px;
 }
 
-.subtitle { font-size: 12px; color: var(--text-2); }
+.subtitle {
+  font-size: 12px;
+  color: var(--text-2);
+}
 
-.headerActions { display: flex; gap: 8px; flex-shrink: 0; }
+.headerActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 /* ── Stepper ── */
 .stepper {
@@ -66,8 +73,8 @@
 }
 
 .stepperDotDone {
-  background: rgba(52,211,153,0.12);
-  border-color: rgba(52,211,153,0.4);
+  background: rgba(52, 211, 153, 0.12);
+  border-color: rgba(52, 211, 153, 0.4);
   color: var(--green);
 }
 
@@ -83,7 +90,9 @@
   font-weight: 600;
 }
 
-.stepperLabelDone { color: var(--green); }
+.stepperLabelDone {
+  color: var(--green);
+}
 
 .stepperLine {
   flex: 1;
@@ -93,10 +102,16 @@
   transition: background 0.3s;
 }
 
-.stepperLineDone { background: rgba(52,211,153,0.3); }
+.stepperLineDone {
+  background: rgba(52, 211, 153, 0.3);
+}
 
 /* ── STEP INPUT ── */
-.inputStep { display: flex; flex-direction: column; gap: 14px; }
+.inputStep {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .roleBar {
   display: flex;
@@ -131,7 +146,10 @@
   font-family: var(--font-sans);
 }
 
-.rolePill:hover { border-color: var(--border-3); color: var(--text); }
+.rolePill:hover {
+  border-color: var(--border-3);
+  color: var(--text);
+}
 
 .rolePillActive {
   background: var(--accent-glow);
@@ -164,23 +182,33 @@
   flex-shrink: 0;
 }
 
-.whoName { font-size: 12px; color: var(--text-2); font-weight: 500; }
+.whoName {
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+}
 
 /* AI Box */
 .aiBox {
   background: var(--surface);
-  border: 1.5px solid rgba(79,126,255,.25);
+  border: 1.5px solid rgba(79, 126, 255, 0.25);
   border-radius: var(--r);
   overflow: hidden;
-  box-shadow: 0 0 0 4px rgba(79,126,255,.04), 0 4px 24px rgba(0,0,0,.2);
+  box-shadow:
+    0 0 0 4px rgba(79, 126, 255, 0.04),
+    0 4px 24px rgba(0, 0, 0, 0.2);
   position: relative;
 }
 
 .aiBox::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(79,126,255,.05), rgba(167,139,250,.03));
+  background: linear-gradient(
+    135deg,
+    rgba(79, 126, 255, 0.05),
+    rgba(167, 139, 250, 0.03)
+  );
   pointer-events: none;
 }
 
@@ -212,11 +240,19 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255,255,255,.7);
+  background: rgba(255, 255, 255, 0.7);
   animation: pulse 1.5s infinite;
 }
 
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 
 .aiTextarea {
   flex: 1;
@@ -231,7 +267,9 @@
   min-height: 90px;
 }
 
-.aiTextarea::placeholder { color: var(--text-3); }
+.aiTextarea::placeholder {
+  color: var(--text-3);
+}
 
 .aiBoxBottom {
   display: flex;
@@ -241,7 +279,12 @@
   flex-wrap: wrap;
 }
 
-.aiEg { font-size: 10px; color: var(--text-3); font-style: italic; flex-shrink: 0; }
+.aiEg {
+  font-size: 10px;
+  color: var(--text-3);
+  font-style: italic;
+  flex-shrink: 0;
+}
 
 .aiSug {
   padding: 4px 11px;
@@ -299,8 +342,15 @@
   white-space: nowrap;
 }
 
-.parseBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow-2); }
-.parseBtn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.parseBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--accent-glow-2);
+}
+.parseBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
 
 /* Tips */
 .tips {
@@ -323,10 +373,17 @@
   min-width: 180px;
 }
 
-.tipIcon { font-size: 13px; flex-shrink: 0; }
+.tipIcon {
+  font-size: 13px;
+  flex-shrink: 0;
+}
 
 /* ── STEP PARSING ── */
-.parsingStep { display: flex; flex-direction: column; gap: 14px; }
+.parsingStep {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .parsingInputPreview {
   background: var(--surface);
@@ -349,7 +406,7 @@
 
 .parsingCard {
   background: var(--surface);
-  border: 1px solid rgba(79,126,255,.2);
+  border: 1px solid rgba(79, 126, 255, 0.2);
   border-radius: var(--r);
   padding: 18px 20px;
   display: flex;
@@ -368,9 +425,17 @@
   margin-top: 1px;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
-.parsingSteps { display: flex; flex-direction: column; gap: 8px; }
+.parsingSteps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .parsingStepRow {
   display: flex;
@@ -381,8 +446,13 @@
   transition: all 0.3s;
 }
 
-.stepActive { color: var(--accent); font-weight: 500; }
-.stepDone   { color: var(--green); }
+.stepActive {
+  color: var(--accent);
+  font-weight: 500;
+}
+.stepDone {
+  color: var(--green);
+}
 
 .stepIndicator {
   font-size: 12px;
@@ -392,21 +462,28 @@
 }
 
 /* ── STEP PREVIEW ── */
-.previewStep { display: flex; flex-direction: column; gap: 14px; }
+.previewStep {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .warningBar {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(251,191,36,.08);
-  border: 1px solid rgba(251,191,36,.2);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
   border-radius: var(--r-sm);
   padding: 10px 14px;
   font-size: 12px;
   color: var(--amber);
 }
 
-.warnIcon { font-size: 14px; flex-shrink: 0; }
+.warnIcon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
 
 .tableCard {
   background: var(--surface);
@@ -478,7 +555,9 @@
   color: var(--green);
 }
 
-.tableScroll { overflow-x: auto; }
+.tableScroll {
+  overflow-x: auto;
+}
 
 .table {
   width: 100%;
@@ -509,11 +588,19 @@
   font-size: 12px;
 }
 
-.table tbody tr { transition: background 0.12s; }
-.table tbody tr:hover { background: var(--surface-2); }
-.table tbody tr:last-child td { border-bottom: none; }
+.table tbody tr {
+  transition: background 0.12s;
+}
+.table tbody tr:hover {
+  background: var(--surface-2);
+}
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
 
-.rowLowConf { background: rgba(248,113,113,.03); }
+.rowLowConf {
+  background: rgba(248, 113, 113, 0.03);
+}
 
 /* Editable cells */
 .cellInput {
@@ -528,7 +615,9 @@
   width: 100%;
 }
 
-.cellInputMono { font-family: var(--font-mono); }
+.cellInputMono {
+  font-family: var(--font-mono);
+}
 
 .cellSelect {
   background: var(--surface-2);
@@ -545,9 +634,14 @@
   appearance: none;
 }
 
-.cellSelect:focus { border-color: var(--accent); }
+.cellSelect:focus {
+  border-color: var(--accent);
+}
 
-.cellEmpty { color: var(--text-3); font-size: 11px; }
+.cellEmpty {
+  color: var(--text-3);
+  font-size: 11px;
+}
 
 .dateCell {
   font-family: var(--font-mono);
@@ -597,7 +691,7 @@
 
 .deleteBtn:hover {
   color: var(--red);
-  background: rgba(248,113,113,.1);
+  background: rgba(248, 113, 113, 0.1);
 }
 
 /* Action bar */
@@ -612,9 +706,17 @@
   flex-wrap: wrap;
 }
 
-.actionStats { display: flex; align-items: center; gap: 16px; }
+.actionStats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
 
-.actionStat { display: flex; flex-direction: column; gap: 2px; }
+.actionStat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
 .actionStatVal {
   font-family: var(--font-mono);
@@ -653,11 +755,15 @@
 }
 
 /* ── STEP CONFIRMED ── */
-.confirmedStep { display: flex; flex-direction: column; gap: 14px; }
+.confirmedStep {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 
 .successCard {
   background: var(--surface);
-  border: 1px solid rgba(52,211,153,.2);
+  border: 1px solid rgba(52, 211, 153, 0.2);
   border-radius: var(--r);
   padding: 32px 24px;
   display: flex;
@@ -671,8 +777,8 @@
   width: 54px;
   height: 54px;
   border-radius: 15px;
-  background: rgba(52,211,153,.1);
-  border: 1px solid rgba(52,211,153,.25);
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -693,6 +799,53 @@
   line-height: 1.6;
 }
 
-.successDesc strong { color: var(--text); }
+.successDesc strong {
+  color: var(--text);
+}
 
-.successActions { display: flex; gap: 8px; margin-top: 6px; }
+.successActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+/* ── Paste at the bottom of ManualEntryPage.module.css ── */
+
+.tabBar {
+  display: flex;
+  gap: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 4px;
+  width: fit-content;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--text-2);
+  background: transparent;
+  transition: all 0.15s;
+}
+.tab:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.tabActive {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tabIcon {
+  font-size: 13px;
+}

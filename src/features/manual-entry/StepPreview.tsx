@@ -1,59 +1,96 @@
-import { useState } from 'react'
-import type { ParsedEntry, ManualEntryType } from './types'
-import { formatNumber } from '@/utils/formatters'
-import styles from './ManualEntryPage.module.css'
+import { useState } from "react";
+import type { ParsedEntry, ManualEntryType } from "./types";
+import { formatNumber } from "@/utils/formatters";
+import styles from "./ManualEntryPage.module.css";
 
 const ENTRY_TYPES: ManualEntryType[] = [
-  'Meeting', 'Planning', 'Review', '1:1', 'Interview', 'Reporting', 'Training', 'Other',
-]
+  "Meeting",
+  "Bugs",
+  "Feature",
+  "Program Management",
+];
 
 interface StepPreviewProps {
-  rows:       ParsedEntry[]
-  totalHours: number
-  warnings:   string[]
-  pods:       string[]
-  clients:    string[]
-  onUpdate:   (i: number, field: keyof ParsedEntry, val: string | number | null) => void
-  onDelete:   (i: number) => void
-  onAddRow:   () => void
-  onConfirm:  () => void
-  onBack:     () => void
+  rows: ParsedEntry[];
+  totalHours: number;
+  warnings: string[];
+  pods: string[];
+  clients: string[];
+  onUpdate: (
+    i: number,
+    field: keyof ParsedEntry,
+    val: string | number | null,
+  ) => void;
+  onDelete: (i: number) => void;
+  onAddRow: () => void;
+  onConfirm: () => void;
+  onBack: () => void;
 }
 
 export default function StepPreview({
-  rows, totalHours, warnings, pods, clients,
-  onUpdate, onDelete, onAddRow, onConfirm, onBack,
+  rows,
+  totalHours,
+  warnings,
+  pods,
+  clients,
+  onUpdate,
+  onDelete,
+  onAddRow,
+  onConfirm,
+  onBack,
 }: StepPreviewProps) {
-  const [editingCell, setEditingCell] = useState<string | null>(null)
+  const [editingCell, setEditingCell] = useState<string | null>(null);
 
-  function cellKey(row: number, field: string) { return `${row}-${field}` }
+  function cellKey(row: number, field: string) {
+    return `${row}-${field}`;
+  }
 
   function EditableText({
-    rowIdx, field, value, className,
-  }: { rowIdx: number; field: keyof ParsedEntry; value: string; className?: string }) {
-    const key = cellKey(rowIdx, field as string)
-    const isEditing = editingCell === key
+    rowIdx,
+    field,
+    value,
+    className,
+  }: {
+    rowIdx: number;
+    field: keyof ParsedEntry;
+    value: string;
+    className?: string;
+  }) {
+    const key = cellKey(rowIdx, field as string);
+    const isEditing = editingCell === key;
     if (isEditing) {
       return (
         <input
           className={styles.cellInput}
           defaultValue={value}
           autoFocus
-          onBlur={e => { onUpdate(rowIdx, field, e.target.value); setEditingCell(null) }}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { onUpdate(rowIdx, field, (e.target as HTMLInputElement).value); setEditingCell(null) } }}
+          onBlur={(e) => {
+            onUpdate(rowIdx, field, e.target.value);
+            setEditingCell(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") {
+              onUpdate(rowIdx, field, (e.target as HTMLInputElement).value);
+              setEditingCell(null);
+            }
+          }}
         />
-      )
+      );
     }
     return (
-      <span className={className} onClick={() => setEditingCell(key)} style={{ cursor: 'text' }}>
+      <span
+        className={className}
+        onClick={() => setEditingCell(key)}
+        style={{ cursor: "text" }}
+      >
         {value || <span className={styles.cellEmpty}>click to edit</span>}
       </span>
-    )
+    );
   }
 
   function EditableHours({ rowIdx, value }: { rowIdx: number; value: number }) {
-    const key = cellKey(rowIdx, 'hours')
-    const isEditing = editingCell === key
+    const key = cellKey(rowIdx, "hours");
+    const isEditing = editingCell === key;
     if (isEditing) {
       return (
         <input
@@ -61,16 +98,32 @@ export default function StepPreview({
           defaultValue={String(value)}
           autoFocus
           style={{ width: 60 }}
-          onBlur={e => { onUpdate(rowIdx, 'hours', parseFloat(e.target.value) || 0); setEditingCell(null) }}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') { onUpdate(rowIdx, 'hours', parseFloat((e.target as HTMLInputElement).value) || 0); setEditingCell(null) } }}
+          onBlur={(e) => {
+            onUpdate(rowIdx, "hours", parseFloat(e.target.value) || 0);
+            setEditingCell(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === "Escape") {
+              onUpdate(
+                rowIdx,
+                "hours",
+                parseFloat((e.target as HTMLInputElement).value) || 0,
+              );
+              setEditingCell(null);
+            }
+          }}
         />
-      )
+      );
     }
     return (
-      <span className={styles.hoursCell} onClick={() => setEditingCell(key)} style={{ cursor: 'text' }}>
+      <span
+        className={styles.hoursCell}
+        onClick={() => setEditingCell(key)}
+        style={{ cursor: "text" }}
+      >
         {value}h
       </span>
-    )
+    );
   }
 
   return (
@@ -79,7 +132,7 @@ export default function StepPreview({
       {warnings.length > 0 && (
         <div className={styles.warningBar}>
           <span className={styles.warnIcon}>⚠</span>
-          {warnings.join(' · ')}
+          {warnings.join(" · ")}
         </div>
       )}
 
@@ -89,7 +142,7 @@ export default function StepPreview({
           <div className={styles.tableHeaderLeft}>
             <span className={styles.tableTitle}>Parsed entries</span>
             <span className={styles.entryCount}>{rows.length} rows</span>
-            {rows.every(r => r.confidence === 'high') && (
+            {rows.every((r) => r.confidence === "high") && (
               <span className={styles.confBadge}>
                 <span className={styles.confDot} />
                 High confidence
@@ -97,9 +150,15 @@ export default function StepPreview({
             )}
           </div>
           <div className={styles.tableHeaderRight}>
-            <span className={styles.totalHours}>{formatNumber(Math.round(totalHours * 4) / 4)}h total</span>
-            <button className="btn btn-ghost btn-sm" onClick={onAddRow}>+ Add row</button>
-            <button className="btn btn-ghost btn-sm" onClick={onBack}>← Re-enter</button>
+            <span className={styles.totalHours}>
+              {formatNumber(Math.round(totalHours * 4) / 4)}h total
+            </span>
+            <button className="btn btn-ghost btn-sm" onClick={onAddRow}>
+              + Add row
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={onBack}>
+              ← Re-enter
+            </button>
           </div>
         </div>
 
@@ -119,7 +178,10 @@ export default function StepPreview({
             </thead>
             <tbody>
               {rows.map((row, i) => (
-                <tr key={i} className={row.confidence === 'low' ? styles.rowLowConf : ''}>
+                <tr
+                  key={i}
+                  className={row.confidence === "low" ? styles.rowLowConf : ""}
+                >
                   {/* Date */}
                   <td>
                     <input
@@ -127,27 +189,38 @@ export default function StepPreview({
                       style={{ width: 100 }}
                       type="date"
                       value={row.date}
-                      onChange={e => onUpdate(i, 'date', e.target.value)}
+                      onChange={(e) => onUpdate(i, "date", e.target.value)}
                     />
                   </td>
 
                   {/* Activity */}
                   <td style={{ maxWidth: 220 }}>
-                    <EditableText rowIdx={i} field="activity" value={row.activity} className={styles.activityCell} />
+                    <EditableText
+                      rowIdx={i}
+                      field="activity"
+                      value={row.activity}
+                      className={styles.activityCell}
+                    />
                   </td>
 
                   {/* Hours */}
-                  <td><EditableHours rowIdx={i} value={row.hours} /></td>
+                  <td>
+                    <EditableHours rowIdx={i} value={row.hours} />
+                  </td>
 
                   {/* POD */}
                   <td>
                     <select
                       className={styles.cellSelect}
-                      value={row.pod ?? ''}
-                      onChange={e => onUpdate(i, 'pod', e.target.value || null)}
+                      value={row.pod ?? ""}
+                      onChange={(e) =>
+                        onUpdate(i, "pod", e.target.value || null)
+                      }
                     >
                       <option value="">—</option>
-                      {pods.map(p => <option key={p}>{p}</option>)}
+                      {pods.map((p) => (
+                        <option key={p}>{p}</option>
+                      ))}
                     </select>
                   </td>
 
@@ -155,11 +228,15 @@ export default function StepPreview({
                   <td>
                     <select
                       className={styles.cellSelect}
-                      value={row.client ?? ''}
-                      onChange={e => onUpdate(i, 'client', e.target.value || null)}
+                      value={row.client ?? ""}
+                      onChange={(e) =>
+                        onUpdate(i, "client", e.target.value || null)
+                      }
                     >
                       <option value="">—</option>
-                      {clients.map(c => <option key={c}>{c}</option>)}
+                      {clients.map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
                     </select>
                   </td>
 
@@ -168,20 +245,33 @@ export default function StepPreview({
                     <select
                       className={styles.cellSelect}
                       value={row.type}
-                      onChange={e => onUpdate(i, 'type', e.target.value)}
+                      onChange={(e) => onUpdate(i, "type", e.target.value)}
                     >
-                      {ENTRY_TYPES.map(t => <option key={t}>{t}</option>)}
+                      {ENTRY_TYPES.map((t) => (
+                        <option key={t}>{t}</option>
+                      ))}
                     </select>
                   </td>
 
                   {/* Notes */}
                   <td>
-                    <EditableText rowIdx={i} field="notes" value={row.notes} className={styles.notesCell} />
+                    <EditableText
+                      rowIdx={i}
+                      field="notes"
+                      value={row.notes}
+                      className={styles.notesCell}
+                    />
                   </td>
 
                   {/* Actions */}
                   <td>
-                    <button className={styles.deleteBtn} onClick={() => onDelete(i)} title="Delete row">✕</button>
+                    <button
+                      className={styles.deleteBtn}
+                      onClick={() => onDelete(i)}
+                      title="Delete row"
+                    >
+                      ✕
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -194,12 +284,16 @@ export default function StepPreview({
       <div className={styles.actionBar}>
         <div className={styles.actionStats}>
           <div className={styles.actionStat}>
-            <div className={styles.actionStatVal}>{formatNumber(Math.round(totalHours * 4) / 4)}h</div>
+            <div className={styles.actionStatVal}>
+              {formatNumber(Math.round(totalHours * 4) / 4)}h
+            </div>
             <div className={styles.actionStatLbl}>Total Hours</div>
           </div>
           <div className={styles.actionStatDiv} />
           <div className={styles.actionStat}>
-            <div className={styles.actionStatVal}>{new Set(rows.map(r => r.date)).size}</div>
+            <div className={styles.actionStatVal}>
+              {new Set(rows.map((r) => r.date)).size}
+            </div>
             <div className={styles.actionStatLbl}>Days</div>
           </div>
           <div className={styles.actionStatDiv} />
@@ -212,17 +306,24 @@ export default function StepPreview({
           Review and edit any row. Click any cell to edit inline.
         </div>
         <div className={styles.actionBtns}>
-          <button className="btn btn-ghost" onClick={onBack}>Discard</button>
+          <button className="btn btn-ghost" onClick={onBack}>
+            Discard
+          </button>
           <button
             className="btn btn-primary"
             onClick={onConfirm}
-            disabled={rows.filter(r => r.activity.trim() && r.hours > 0).length === 0}
-            style={{ background: 'linear-gradient(135deg,#059669,#34D399)', boxShadow: '0 4px 16px rgba(52,211,153,0.25)' }}
+            disabled={
+              rows.filter((r) => r.activity.trim() && r.hours > 0).length === 0
+            }
+            style={{
+              background: "linear-gradient(135deg,#059669,#34D399)",
+              boxShadow: "0 4px 16px rgba(52,211,153,0.25)",
+            }}
           >
             ✓ Confirm &amp; Log {rows.length} entries
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

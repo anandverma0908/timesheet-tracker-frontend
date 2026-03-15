@@ -14,13 +14,9 @@ export interface ManualEntry {
 
 export type ManualEntryType =
   | 'Meeting'
-  | 'Planning'
-  | 'Review'
-  | '1:1'
-  | 'Interview'
-  | 'Reporting'
-  | 'Training'
-  | 'Other'
+  | 'Bugs'
+  | 'Feature'
+  | 'Program Management'
 
 export type PersonRole =
   | 'Engineering Manager'

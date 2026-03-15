@@ -1,166 +1,244 @@
-import { useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { useFilterStore } from "@/store";
-import { fetchFilters } from "@/services/api";
-import { QUERY_KEYS } from "@/config/queryKeys";
-import { getPodColor } from "@/config/themes";
-import styles from "./Sidebar.module.css";
-import { useAuthStore } from "@/features/auth/useAuthStore";
+import { useState, useRef, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { useFilterStore } from '@/store'
+import { fetchFilters }   from '@/services/api'
+import { QUERY_KEYS }     from '@/config/queryKeys'
+import { getPodColor }    from '@/config/themes'
+import { useAuthStore }   from '@/features/auth/useAuthStore'
+import styles from './Sidebar.module.css'
 
+/* ── Multi-select filter section ─────────────────────────────────────────── */
+interface FilterSectionProps {
+  title:      string
+  items:      string[]
+  selected:   string[]
+  onToggle:   (item: string) => void
+  onClear:    () => void
+  getColor?:  (item: string) => string
+  maxVisible?: number
+}
+
+function FilterSection({
+  title, items, selected, onToggle, onClear,
+  getColor, maxVisible = 5,
+}: FilterSectionProps) {
+  const [expanded,  setExpanded]  = useState(true)
+  const [showAll,   setShowAll]   = useState(false)
+  const [search,    setSearch]    = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+
+  const filtered  = items.filter(i =>
+    i.toLowerCase().includes(search.toLowerCase()))
+  const visible   = showAll ? filtered : filtered.slice(0, maxVisible)
+  const hasMore   = filtered.length > maxVisible && !showAll
+  const count     = selected.length
+
+  useEffect(() => {
+    if (showAll) searchRef.current?.focus()
+  }, [showAll])
+
+  return (
+    <div className={styles.filterSection}>
+      {/* Section header */}
+      <div className={styles.sectionRow}>
+        <button
+          className={styles.sectionToggle}
+          onClick={() => setExpanded(v => !v)}
+        >
+          <span className={styles.sectionArrow}
+            style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}>›</span>
+          <span className={styles.sectionLabel}>{title}</span>
+        </button>
+        {count > 0 && (
+          <div className={styles.sectionRight}>
+            <span className={styles.filterBadge}>{count}</span>
+            <button className={styles.clearBtn} onClick={onClear} title={`Clear ${title}`}>✕</button>
+          </div>
+        )}
+      </div>
+
+      {expanded && (
+        <div className={styles.filterBody}>
+
+          {/* Search — visible when showAll OR items > 8 */}
+          {(showAll || items.length > 8) && (
+            <div className={styles.filterSearchWrap}>
+              <input
+                ref={searchRef}
+                className={styles.filterInput}
+                placeholder={`Search ${title.toLowerCase()}…`}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Item list */}
+          <div className={styles.checkList}>
+            {visible.map(item => {
+              const isActive = selected.includes(item)
+              const color    = getColor?.(item)
+              return (
+                <button
+                  key={item}
+                  className={`${styles.checkItem} ${isActive ? styles.checkItemActive : ''}`}
+                  onClick={() => onToggle(item)}
+                >
+                  <span
+                    className={styles.checkbox}
+                    style={isActive && color
+                      ? { background: color, borderColor: color }
+                      : isActive
+                      ? { background: 'var(--accent)', borderColor: 'var(--accent)' }
+                      : {}
+                    }
+                  >
+                    {isActive && <span className={styles.checkmark}>✓</span>}
+                  </span>
+                  {color && (
+                    <span className={styles.colorDot} style={{ background: color }} />
+                  )}
+                  <span className={styles.checkLabel}>{item}</span>
+                </button>
+              )
+            })}
+
+            {visible.length === 0 && (
+              <div className={styles.noResults}>No {title.toLowerCase()} found</div>
+            )}
+          </div>
+
+          {/* Show more / less */}
+          {hasMore && (
+            <button
+              className={styles.showMoreBtn}
+              onClick={() => setShowAll(true)}
+            >
+              + {filtered.length - maxVisible} more {title.toLowerCase()}
+            </button>
+          )}
+          {showAll && filtered.length > maxVisible && (
+            <button
+              className={styles.showMoreBtn}
+              onClick={() => { setShowAll(false); setSearch('') }}
+            >
+              ↑ Show less
+            </button>
+          )}
+
+          {/* Selected chips */}
+          {count > 0 && (
+            <div className={styles.chipStrip}>
+              {selected.map(item => {
+                const color = getColor?.(item)
+                return (
+                  <span
+                    key={item}
+                    className={styles.chip}
+                    style={color
+                      ? { borderColor: color, color: color, background: `${color}18` }
+                      : {}
+                    }
+                  >
+                    {item}
+                    <button
+                      className={styles.chipRemove}
+                      onClick={e => { e.stopPropagation(); onToggle(item) }}
+                    >✕</button>
+                  </span>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Main Sidebar ────────────────────────────────────────────────────────── */
 export default function Sidebar() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { project, pod, setFilter } = useFilterStore();
-  const { can } = useAuthStore();
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { pods, clients, togglePod, toggleClient, clearPods, clearClients } =
+    useFilterStore();
+  const { can } = useAuthStore()
 
   const { data: filters } = useQuery({
     queryKey: QUERY_KEYS.filters(),
-    queryFn: fetchFilters,
+    queryFn:  fetchFilters,
     staleTime: 1000 * 60 * 10,
-  });
+  })
 
-  const projects = filters?.projects ?? [];
-  const pods = filters?.pods ?? [];
+  const allPods    = filters?.pods    ?? []
+  const allClients = filters?.clients ?? []
 
   return (
     <aside className={styles.sidebar}>
+
       {/* Search */}
-      <div className={styles.top}>
-        <div className={styles.search}>
-          <span className={styles.searchIcon}>🔍</span>
-          <span className={styles.searchPlaceholder}>
-            Search projects, tickets…
-          </span>
-        </div>
-      </div>
-
       <div className={styles.body}>
-        {/* Projects */}
-        <div className={styles.section}>Projects</div>
 
-        <SidebarItem
-          label="All Projects"
-          icon="◈"
-          count={filters ? projects.length.toString() : "…"}
-          active={!project && location.pathname !== "/settings"}
-          onClick={() => {
-            setFilter("project", null);
-            navigate("/dashboard");
-          }}
-        />
-
-        {projects.slice(0, 8).map((p) => (
-          <SidebarItem
-            key={p}
-            label={p}
-            icon="◈"
-            active={project === p}
-            onClick={() => {
-              setFilter("project", p);
-              navigate("/dashboard");
-            }}
-          />
-        ))}
-
-        {projects.length > 8 && (
-          <div className={styles.more}>
-            + {projects.length - 8} more projects…
-          </div>
-        )}
+        {/* Navigation */}
+        <NavItem label="Dashboard"    icon="▦"
+          active={location.pathname === '/dashboard'}    onClick={() => navigate('/dashboard')} />
+        <NavItem label="Tickets"      icon="≡"
+          active={location.pathname === '/tickets'}      onClick={() => navigate('/tickets')} />
+        <NavItem label="Team"         icon="◎"
+          active={location.pathname === '/team'}         onClick={() => navigate('/team')} />
+        <NavItem label="Timesheets" icon="✦"
+          active={location.pathname === '/manual-entry'} onClick={() => navigate('/manual-entry')} />
+        <NavItem label="Export"       icon="↓"
+          active={location.pathname === '/export'}       onClick={() => navigate('/export')} />
 
         <div className={styles.divider} />
 
-        {/* PODs */}
-        <div className={styles.section}>PODs</div>
-
-        <SidebarItem
-          label="All PODs"
-          icon="▸"
-          active={!pod}
-          onClick={() => setFilter("pod", null)}
+        {/* PODs — multi select */}
+        <FilterSection
+          title="PODs"
+          items={allPods}
+          selected={pods}
+          onToggle={togglePod}
+          onClear={clearPods}
+          getColor={getPodColor}
+          maxVisible={5}
         />
-
-        {pods.slice(0, 6).map((p) => (
-          <SidebarItem
-            key={p}
-            label={p}
-            icon="▸"
-            dotColor={getPodColor(p)}
-            active={pod === p}
-            onClick={() => setFilter("pod", p)}
-          />
-        ))}
 
         <div className={styles.divider} />
 
-        {/* Reports */}
-        <div className={styles.section}>Reports</div>
-        <SidebarItem
-          label="Monthly Finance"
-          icon="📊"
-          onClick={() => navigate("/export")}
-          active={false}
-        />
-        <SidebarItem
-          label="Manual Entry"
-          icon="✦"
-          active={location.pathname === "/manual-entry"}
-          onClick={() => navigate("/manual-entry")}
-        />
-        <SidebarItem
-          label="Annual FY"
-          icon="📋"
-          onClick={() => navigate("/export")}
-          active={false}
+        {/* Clients — multi select */}
+        <FilterSection
+          title="Clients"
+          items={allClients}
+          selected={clients}
+          onToggle={toggleClient}
+          onClear={clearClients}
+          maxVisible={5}
         />
 
-        {/* Settings */}
-        {can("manage:settings") && (
+        {can('manage:settings') && (
           <>
             <div className={styles.divider} />
-            <SidebarItem
-              label="Settings"
-              icon="⚙️"
-              active={location.pathname === "/settings"}
-              onClick={() => navigate("/settings")}
-            />
+            <NavItem label="Settings" icon="⚙️"
+              active={location.pathname === '/settings'} onClick={() => navigate('/settings')} />
           </>
         )}
       </div>
     </aside>
-  );
+  )
 }
 
-/* ── Sidebar item ── */
-interface SidebarItemProps {
-  label: string;
-  icon: string;
-  count?: string;
-  active: boolean;
-  dotColor?: string;
-  onClick: () => void;
-}
-
-function SidebarItem({
-  label,
-  icon,
-  count,
-  active,
-  dotColor,
-  onClick,
-}: SidebarItemProps) {
+function NavItem({ label, icon, active, onClick }: {
+  label: string; icon: string; active: boolean; onClick: () => void
+}) {
   return (
     <button
-      className={`${styles.item} ${active ? styles.itemActive : ""}`}
+      className={`${styles.item} ${active ? styles.itemActive : ''}`}
       onClick={onClick}
     >
-      {dotColor ? (
-        <span className={styles.dot} style={{ background: dotColor }} />
-      ) : (
-        <span className={styles.icon}>{icon}</span>
-      )}
+      <span className={styles.icon}>{icon}</span>
       <span className={styles.label}>{label}</span>
-      {count && <span className={styles.count}>{count}</span>}
     </button>
-  );
+  )
 }

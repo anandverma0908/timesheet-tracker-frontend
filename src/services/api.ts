@@ -36,93 +36,115 @@ function mock() {
   return (window as any).__EAP_MOCK__ ?? null;
 }
 
-/* ── Param builder ── */
-function buildParams(filters: Partial<FilterState>): Record<string, string> {
-  const p: Record<string, string> = {};
-  if (filters.dateFrom) p.date_from = filters.dateFrom;
-  if (filters.dateTo) p.date_to = filters.dateTo;
-  if (filters.user) p.user = filters.user;
-  if (filters.client) p.client = filters.client;
-  if (filters.pod) p.pod = filters.pod;
-  if (filters.project) p.project = filters.project;
+/* ── Param builder — supports multi-value pod[] and client[] ── */
+function buildParams(
+  filters: Partial<FilterState>,
+  pods?: string[],
+  clients?: string[],
+): URLSearchParams {
+  const p = new URLSearchParams();
+
+  if (filters.dateFrom) p.append("date_from", filters.dateFrom);
+  if (filters.dateTo) p.append("date_to", filters.dateTo);
+  if (filters.user) p.append("user", filters.user);
+  if (filters.project) p.append("project", filters.project);
+
+  // Multi-select pods — send as repeated ?pod=DPAI&pod=DevOps
+  const podList = pods?.length ? pods : filters.pod ? [filters.pod] : [];
+  podList.forEach((pod) => p.append("pod", pod));
+
+  // Multi-select clients
+  const clientList = clients?.length
+    ? clients
+    : filters.client
+      ? [filters.client]
+      : [];
+  clientList.forEach((client) => p.append("client", client));
+
   return p;
 }
 
-/* ── Tickets ── */
+export interface MultiFilters extends Partial<FilterState> {
+  pods?: string[];
+  clients?: string[];
+}
+
 export async function fetchTickets(
-  filters: Partial<FilterState>,
+  filters: MultiFilters,
 ): Promise<TicketsResponse> {
   if (mock()) return mock().fetchTickets(filters);
   const { data } = await api.get<TicketsResponse>("/tickets", {
-    params: buildParams(filters),
+    params: buildParams(filters, filters.pods, filters.clients),
   });
   return data;
 }
 
-/* ── Summary ── */
 export async function fetchSummary(
-  filters: Partial<FilterState>,
+  filters: MultiFilters,
 ): Promise<SummaryResponse> {
   if (mock()) return mock().fetchSummary(filters);
   const { data } = await api.get<SummaryResponse>("/summary", {
-    params: buildParams(filters),
+    params: buildParams(filters, filters.pods, filters.clients),
   });
   return data;
 }
 
-/* ── Filters ── */
 export async function fetchFilters(): Promise<FiltersResponse> {
   if (mock()) return mock().fetchFilters();
   const { data } = await api.get<FiltersResponse>("/filters");
   return data;
 }
 
-/* ── Export ── */
 export async function downloadMonthlyReport(
   config: ExportConfig,
 ): Promise<void> {
-  const params: Record<string, string> = {
-    date_from: config.dateFrom,
-    date_to: config.dateTo,
-    month_label: config.monthLabel,
-    ...(config.pod && { pod: config.pod }),
-    ...(config.client && { client: config.client }),
-    ...(config.project && { project: config.project }),
-    ...(config.engineer && { user: config.engineer }),
-  };
-  const res = await api.get("/export/monthly", {
-    params,
+  if (mock()) {
+    mock().downloadMonthlyReport(config);
+    return;
+  }
+  const p = new URLSearchParams();
+  if (config.dateFrom) p.append("date_from", config.dateFrom);
+  if (config.dateTo) p.append("date_to", config.dateTo);
+  if (config.monthLabel) p.append("month_label", config.monthLabel);
+  if (config.pod) p.append("pod", config.pod);
+  if (config.client) p.append("client", config.client);
+  if (config.project) p.append("project", config.project);
+  if (config.engineer) p.append("engineer", config.engineer);
+  const { data } = await api.get("/export/monthly", {
+    params: p,
     responseType: "blob",
   });
-  triggerDownload(
-    res.data,
-    `timesheet_${config.monthLabel.replace(" ", "_")}.xlsx`,
+  _download(
+    data,
+    `timesheet_${config.monthLabel?.replace(" ", "_") ?? "report"}.xlsx`,
   );
 }
 
 export async function downloadFYReport(config: ExportConfig): Promise<void> {
-  const params: Record<string, string> = {
-    fy_label: config.fyLabel,
-    date_from: config.dateFrom,
-    date_to: config.dateTo,
-    ...(config.pod && { pod: config.pod }),
-    ...(config.client && { client: config.client }),
-    ...(config.project && { project: config.project }),
-    ...(config.engineer && { user: config.engineer }),
-  };
-  const res = await api.get("/export/fy", { params, responseType: "blob" });
-  triggerDownload(res.data, `engineering_timesheet_FY_${config.fyLabel}.xlsx`);
+  if (mock()) {
+    mock().downloadFYReport(config);
+    return;
+  }
+  const p = new URLSearchParams();
+  if (config.dateFrom) p.append("date_from", config.dateFrom);
+  if (config.dateTo) p.append("date_to", config.dateTo);
+  if (config.fyLabel) p.append("fy_label", config.fyLabel);
+  if (config.pod) p.append("pod", config.pod);
+  if (config.client) p.append("client", config.client);
+  if (config.project) p.append("project", config.project);
+  if (config.engineer) p.append("engineer", config.engineer);
+  const { data } = await api.get("/export/fy", {
+    params: p,
+    responseType: "blob",
+  });
+  _download(data, `engineering_FY_${config.fyLabel ?? "2024-2025"}.xlsx`);
 }
 
-function triggerDownload(blob: Blob, filename: string) {
+function _download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
   URL.revokeObjectURL(url);
 }
-
-export default api;

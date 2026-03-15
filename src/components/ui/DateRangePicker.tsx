@@ -11,8 +11,7 @@ import {
   Popover,
 } from "@mui/material";
 import { RiArrowDownWideFill } from "react-icons/ri";
-import { BsFillCalendar2Fill } from "react-icons/bs";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import { BsFillCalendar2EventFill } from "react-icons/bs";
 import {
   format,
   startOfMonth,
@@ -318,7 +317,7 @@ export default function DateRangePicker({
         onClick={(e) => setAnchorEl(e.currentTarget)}
         className={styles.datePill}
       >
-        <BsFillCalendar2Fill />
+        <BsFillCalendar2EventFill />
         <Typography
           className={styles.preset}
           sx={{

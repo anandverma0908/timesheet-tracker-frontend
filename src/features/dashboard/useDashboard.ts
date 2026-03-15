@@ -2,20 +2,27 @@ import { useQuery } from "@tanstack/react-query";
 import { useFilterStore } from "@/store";
 import { useAuthStore } from "@/features/auth/useAuthStore";
 import { fetchSummary } from "@/services/api";
-import { QUERY_KEYS } from "@/config/queryKeys";
 
 export function useDashboard() {
-  const { dateFrom, dateTo, project, client, user } = useFilterStore();
+  const { dateFrom, dateTo, project, user, pods, clients } = useFilterStore();
   const getScopedPod = useAuthStore((s) => s.getScopedPod);
 
-  /* Auto-scope POD for tech_lead / team_member */
   const scopedPod = getScopedPod();
-  const pod = scopedPod ?? useFilterStore.getState().pod;
 
-  const params = { dateFrom, dateTo, project, pod, client, user };
+  // If role-scoped to a POD, override the multi-select with just that POD
+  const effectivePods = scopedPod ? [scopedPod] : pods;
+
+  const params = {
+    dateFrom,
+    dateTo,
+    project,
+    user,
+    pods: effectivePods,
+    clients: clients,
+  };
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: QUERY_KEYS.summary(params),
+    queryKey: ["summary", params],
     queryFn: () => fetchSummary(params),
   });
 

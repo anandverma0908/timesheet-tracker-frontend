@@ -7,13 +7,6 @@ import { ROLE_COLORS, ROLE_LABELS } from "@/features/auth/types";
 import styles from "./Topbar.module.css";
 import DateRangePicker from "../ui/DateRangePicker";
 
-const DATE_PRESETS: { label: string; value: DatePreset }[] = [
-  { label: "Today", value: "today" },
-  { label: "This Month", value: "thisMonth" },
-  { label: "Last Month", value: "lastMonth" },
-  { label: "This FY", value: "thisFY" },
-];
-
 export default function Topbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,14 +14,14 @@ export default function Topbar() {
   const { user, logout, canAccessRoute } = useAuthStore();
 
   /* Build nav items filtered by role */
-  const ALL_NAV = [
-    { path: "/dashboard", label: "Dashboard", icon: "▦" },
-    { path: "/tickets", label: "Tickets", icon: "≡" },
-    { path: "/team", label: "Team", icon: "◎" },
-    { path: "/manual-entry", label: "Manual Entry", icon: "✦" },
-  ];
+  // const ALL_NAV = [
+  //   { path: "/dashboard", label: "Dashboard", icon: "▦" },
+  //   { path: "/tickets", label: "Tickets", icon: "≡" },
+  //   { path: "/team", label: "Team", icon: "◎" },
+  //   { path: "/manual-entry", label: "Manual Entry", icon: "✦" },
+  // ];
 
-  const navItems = ALL_NAV.filter((item) => canAccessRoute(item.path));
+  // const navItems = ALL_NAV.filter((item) => canAccessRoute(item.path));
 
   function handlePreset(preset: DatePreset) {
     const { from, to } = getPresetDates(preset);
@@ -60,10 +53,10 @@ export default function Topbar() {
         </div>
       </div>
 
-      <div className={styles.sep} />
+      {/* <div className={styles.sep} /> */}
 
       {/* Nav — only shows routes the user can access */}
-      <nav className={styles.nav}>
+      {/* <nav className={styles.nav}>
         {navItems.map((item) => (
           <button
             key={item.path}
@@ -74,7 +67,7 @@ export default function Topbar() {
             {item.label}
           </button>
         ))}
-      </nav>
+      </nav> */}
 
       {/* Right */}
       <div className={styles.right}>

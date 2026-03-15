@@ -1,103 +1,63 @@
 import type { ParsedEntry, ManualEntryType, AIParseResponse } from "./types";
 import { format } from "date-fns";
 
-/* ── Build the system prompt ── */
-function buildPrompt(
-  text: string,
-  pods: string[],
-  clients: string[],
-  today: string,
-): string {
-  return `You are a timesheet parser for an engineering team. Parse natural language time entries into structured JSON.
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-Today is ${today}.
-
-Available PODs in this workspace: ${pods.join(", ")}
-Available clients: ${clients.join(", ")}
-
-Activity types allowed: Meeting, Planning, Review, 1:1, Interview, Reporting, Training, Other
-
-Rules:
-- Extract every distinct activity as a separate entry
-- If a day is mentioned (e.g. "Monday", "Mar 14", "yesterday"), use it as the date in YYYY-MM-DD format
-- If no date is mentioned for an entry, use today's date
-- Convert durations like "30 mins", "1.5h", "2 hours" to decimal hours (e.g. 0.5, 1.5, 2.0)
-- Match POD names case-insensitively from the available PODs list (null if no match)
-- Match client names case-insensitively from the available clients list (null if no match)
-- Set confidence: "high" if date+hours+activity are all clear, "medium" if one is inferred, "low" if guessed
-- For "1:1s with 4 engineers for 30 mins each" → hours = 4 * 0.5 = 2.0, type = "1:1"
-
-Return ONLY a valid JSON object, no markdown, no explanation:
-{
-  "entries": [
-    {
-      "date": "YYYY-MM-DD",
-      "activity": "Short activity name",
-      "hours": 1.5,
-      "pod": "DPAI" or null,
-      "client": "Colgate" or null,
-      "type": "Meeting",
-      "notes": "any extra context",
-      "confidence": "high"
-    }
-  ],
-  "warnings": ["any ambiguities noted"]
+function getAuthHeader(): Record<string, string> {
+  // Import inline to avoid circular deps
+  const stored = localStorage.getItem("eap-auth");
+  if (!stored) return {};
+  try {
+    const { state } = JSON.parse(stored);
+    return state?.token ? { Authorization: `Bearer ${state.token}` } : {};
+  } catch {
+    return {};
+  }
 }
 
-Text to parse:
-"${text}"`;
-}
-
-/* ── Call Anthropic API ── */
+/* ── Call backend which calls Anthropic ── */
 export async function parseTimeEntries(
   text: string,
   pods: string[],
   clients: string[],
 ): Promise<AIParseResponse> {
   const today = format(new Date(), "yyyy-MM-dd");
-  const prompt = buildPrompt(text, pods, clients, today);
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch(`${API}/api/ai/parse-entries`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      messages: [{ role: "user", content: prompt }],
-    }),
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({ text, pods, clients }),
   });
 
   if (!response.ok) {
-    throw new Error(`AI API error: ${response.status}`);
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `AI API error: ${response.status}`);
   }
 
-  const data = await response.json();
-  const raw = data.content?.[0]?.text ?? "";
+  const parsed = await response.json();
 
-  try {
-    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    const entries: ParsedEntry[] = (parsed.entries ?? []).map((e: any) => ({
-      date: e.date ?? today,
-      activity: e.activity ?? "Unknown activity",
-      hours: Number(e.hours) || 0,
-      pod: e.pod ?? null,
-      client: e.client ?? null,
-      type: (e.type as ManualEntryType) ?? "Meeting",
-      notes: e.notes ?? "",
-      confidence: e.confidence ?? "medium",
-    }));
+  const entries: ParsedEntry[] = (parsed.entries ?? []).map((e: any) => ({
+    date:       e.date       ?? today,
+    activity:   e.activity   ?? "Unknown activity",
+    hours:      Number(e.hours) || 0,
+    pod:        e.pod        ?? null,
+    client:     e.client     ?? null,
+    type:       (e.type as ManualEntryType) ?? "Meeting",
+    notes:      e.notes      ?? "",
+    confidence: e.confidence ?? "medium",
+  }));
 
-    return {
-      entries,
-      totalHours: entries.reduce((sum, e) => sum + e.hours, 0),
-      warnings: parsed.warnings ?? [],
-    };
-  } catch {
-    throw new Error("Failed to parse AI response. Please try again.");
-  }
+  return {
+    entries,
+    totalHours: entries.reduce((sum, e) => sum + e.hours, 0),
+    warnings:   parsed.warnings ?? [],
+  };
 }
 
-/* ── Fallback local parser (when AI is unavailable / mock mode) ── */
+/* ── Fallback local parser (mock mode / AI unavailable) ── */
 export function localParseEntries(
   text: string,
   pods: string[],
@@ -126,45 +86,31 @@ export function localParseEntries(
     );
     const hours = isMin ? rawHours / 60 : rawHours;
 
-    const podMatch = pods.find((p) =>
-      line.toLowerCase().includes(p.toLowerCase()),
-    );
-    const clientMatch = clients.find((c) =>
-      line.toLowerCase().includes(c.toLowerCase()),
-    );
+    const podMatch    = pods.find((p) => line.toLowerCase().includes(p.toLowerCase()));
+    const clientMatch = clients.find((c) => line.toLowerCase().includes(c.toLowerCase()));
 
     const typeMap: Record<string, ManualEntryType> = {
-      "1:1": "1:1",
-      "one on one": "1:1",
-      planning: "Planning",
-      review: "Review",
-      interview: "Interview",
-      standup: "Meeting",
-      meeting: "Meeting",
-      call: "Meeting",
-      report: "Reporting",
-      training: "Training",
+      "1:1": "1:1", "one on one": "1:1",
+      planning: "Planning", review: "Review",
+      interview: "Interview", standup: "Meeting",
+      meeting: "Meeting", call: "Meeting",
+      report: "Reporting", training: "Training",
     };
     const type =
-      Object.entries(typeMap).find(([k]) =>
-        line.toLowerCase().includes(k),
-      )?.[1] ?? "Meeting";
+      Object.entries(typeMap).find(([k]) => line.toLowerCase().includes(k))?.[1] ?? "Meeting";
 
     entries.push({
       date: today,
       activity:
         line
-          .replace(
-            /\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)/gi,
-            "",
-          )
+          .replace(/\d+(?:\.\d+)?\s*(?:h|hr|hrs|hours?|m|min|mins|minutes?)/gi, "")
           .trim()
           .slice(0, 60) || "Activity",
-      hours: Math.round(hours * 4) / 4,
-      pod: podMatch ?? null,
-      client: clientMatch ?? null,
+      hours:      Math.round(hours * 4) / 4,
+      pod:        podMatch    ?? null,
+      client:     clientMatch ?? null,
       type,
-      notes: "",
+      notes:      "",
       confidence: podMatch || clientMatch ? "high" : "medium",
     });
   }
@@ -174,9 +120,7 @@ export function localParseEntries(
     totalHours: entries.reduce((s, e) => s + e.hours, 0),
     warnings:
       entries.length === 0
-        ? [
-            'Could not parse any entries. Try: "sprint planning 2h DPAI, 1:1s 1h"',
-          ]
+        ? ['Could not parse any entries. Try: "sprint planning 2h DPAI, 1:1s 1h"']
         : [],
   };
 }

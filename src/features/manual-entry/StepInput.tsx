@@ -1,6 +1,8 @@
 import { useRef } from "react";
 import type { PersonRole } from "./types";
 import styles from "./ManualEntryPage.module.css";
+import { PiStarFourFill } from "react-icons/pi";
+import { RiArrowRightFill } from "react-icons/ri";
 
 const SUGGESTIONS = [
   "Sprint planning 2h DPAI Colgate, then 4x 30min 1:1s with engineers",
@@ -104,7 +106,9 @@ export default function StepInput({
               onClick={onParse}
               disabled={!inputText.trim()}
             >
-              ✦ Parse with AI →
+              <PiStarFourFill />
+              Parse with AI
+              <RiArrowRightFill />
             </button>
           </div>
         </div>

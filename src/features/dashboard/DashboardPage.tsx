@@ -8,6 +8,7 @@ import ActivityHeatmap from "./ActivityHeatmap";
 import styles from "./DashboardPage.module.css";
 import { Box } from "@mui/material";
 import { useState } from "react";
+import { IoMdSync } from "react-icons/io";
 
 type ChartView = "pod" | "client";
 
@@ -33,13 +34,15 @@ export default function DashboardPage() {
               toast.success("Syncing from Jira…");
             }}
           >
-            ⟳ Sync Jira
-          </button>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => (window.location.href = "/export")}
-          >
-            ↓ Export Report
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
+              <IoMdSync fontSize={15}/> Sync Jira
+            </Box>
           </button>
         </Box>
       </Box>
@@ -82,9 +85,7 @@ export default function DashboardPage() {
       </Box>
 
       {/* Heatmap */}
-      <Box className="fade-up-3">
-        <ActivityHeatmap />
-      </Box>
+      <Box className="fade-up-3">{/* <ActivityHeatmap /> */}</Box>
     </Box>
   );
 }

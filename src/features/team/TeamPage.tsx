@@ -13,7 +13,8 @@ import EngineerDrawer from "./EngineerDrawer";
 import { SummaryByUser } from "@/types";
 
 export default function TeamPage() {
-  const [selectedPod, setSelectedPod] = useState<string | null>(null);
+  const pods = useFilterStore((s) => s.pods);
+  const clients = useFilterStore((s) => s.clients);
   const [search, setSearch] = useState("");
   const [selectedEngineer, setSelectedEngineer] =
     useState<SummaryByUser | null>(null);
@@ -26,13 +27,15 @@ export default function TeamPage() {
     queryKey: QUERY_KEYS.summary({
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
-      pod: selectedPod,
+      pods,
+      clients,
     }),
     queryFn: () =>
       fetchSummary({
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
-        pod: selectedPod,
+        pods,
+        clients,
       }),
   });
 
@@ -74,7 +77,7 @@ export default function TeamPage() {
               : `${engineers.length} engineers · ${allPods.length} PODs`}
           </p>
         </div>
-        <div className={styles.actions}>
+        {/* <div className={styles.actions}>
           <button className="btn btn-ghost btn-sm">Sort: Hours ↓</button>
           <button
             className="btn btn-primary btn-sm"
@@ -82,16 +85,16 @@ export default function TeamPage() {
           >
             ↓ Export
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Controls */}
-      <div className={`${styles.controls} fade-up-1`}>
+      {/* <div className={`${styles.controls} fade-up-1`}>
         <span className={styles.podLabel}>POD:</span>
 
         <button
           className={`${styles.podPill} ${!selectedPod ? styles.podPillActive : ""}`}
-          onClick={() => setSelectedPod(null)}
+          // onClick={() => setSelectedPod(null)}
         >
           All
         </button>
@@ -123,7 +126,7 @@ export default function TeamPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
+      </div> */}
 
       {/* Grid */}
       {isLoading ? (
