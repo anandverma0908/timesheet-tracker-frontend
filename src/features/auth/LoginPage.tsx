@@ -1,70 +1,105 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuthStore, MOCK_USERS } from './useAuthStore'
-import styles from './LoginPage.module.css'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "./useAuthStore";
+import styles from "./LoginPage.module.css";
+import EmailIcon from "@mui/icons-material/Email";
+
+type Step = "email" | "otp";
 
 export default function LoginPage() {
-  const navigate  = useNavigate()
-  const login     = useAuthStore(s => s.login)
-  const isMock    = import.meta.env.VITE_USE_MOCK === 'true'
+  const navigate = useNavigate();
+  const requestOtp = useAuthStore((s) => s.requestOtp);
+  const verifyOtp = useAuthStore((s) => s.verifyOtp);
 
-  const [email,    setEmail]    = useState('')
-  const [password, setPassword] = useState('')
-  const [showPass, setShowPass] = useState(false)
-  const [error,    setError]    = useState('')
-  const [loading,  setLoading]  = useState(false)
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter your email and password')
-      return
+  async function handleRequestOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim()) {
+      setError("Please enter your email");
+      return;
     }
-    setError('')
-    setLoading(true)
+    setError("");
+    setLoading(true);
     try {
-      await login({ email, password })
-      navigate('/dashboard', { replace: true })
+      const res = await requestOtp(email.trim().toLowerCase());
+      if (res?.dev_otp) setDevOtp(res.dev_otp);
+      setStep("otp");
     } catch (err: any) {
-      setError(err.message ?? 'Login failed')
+      setError("Failed to send code. Check your email address.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  function quickLogin(email: string, password: string) {
-    setEmail(email)
-    setPassword(password)
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (code.trim().length !== 6) {
+      setError("Enter the 6-digit code");
+      return;
+    }
+    setError("");
+    setLoading(true);
+    try {
+      await verifyOtp(email, code.trim());
+      navigate("/dashboard", { replace: true });
+    } catch (err: any) {
+      setError(err.message ?? "Invalid or expired code");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleResend() {
+    setError("");
+    setCode("");
+    setDevOtp(null);
+    setLoading(true);
+    try {
+      const res = await requestOtp(email);
+      if (res?.dev_otp) setDevOtp(res.dev_otp);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to resend");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <div className={styles.root}>
-
-      {/* Left panel */}
+      {/* ── Left panel ─────────────────────────────────────────────────────── */}
       <div className={styles.left}>
         <div className={styles.leftAccent} />
         <div className={styles.leftAccent2} />
 
+        {/* Logo */}
         <div className={styles.logoRow}>
-          <div className={styles.logoMark}>⚡</div>
+          <div className={styles.logoMark}>T</div>
           <div>
-            <div className={styles.logoName}>Analytics</div>
-            <div className={styles.logoTag}>Engineering Platform</div>
+            <div className={styles.logoName}>Trackly</div>
+            <div className={styles.logoTag}>Work. Tracked.</div>
           </div>
         </div>
 
+        {/* Headline */}
         <div className={styles.brandContent}>
           <div className={styles.eyebrow}>Engineering Intelligence</div>
           <h1 className={styles.headline}>
-            Your Jira data,<br />
-            <em>beautifully</em><br />
-            visualised
+            The smarter way to track
+            <br />
+            your team's work.
           </h1>
           <p className={styles.desc}>
-            Connect once. Track hours, tickets, and team performance
-            across engineers, projects, and clients — all in real time.
+            Trackly gives your team a single place to log, review, and report on
+            work — connected to the tools you already use.
           </p>
 
+          {/* Stats */}
           <div className={styles.stats}>
             <div className={styles.stat}>
               <div className={styles.statVal}>300+</div>
@@ -83,14 +118,22 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Role previews */}
+        {/* Features */}
         <div className={styles.roleList}>
           {[
-            { role: 'Admin',              desc: 'Full access to all screens and settings' },
-            { role: 'Engineering Manager',desc: 'Dashboard, tickets, team, exports'        },
-            { role: 'Tech Lead',          desc: 'Own POD view + AI time entry'             },
-            { role: 'Finance Viewer',     desc: 'Reports and exports only'                 },
-          ].map(r => (
+            {
+              role: "Automatic Jira sync",
+              desc: "Tickets and worklogs pulled every 30 minutes — always up to date",
+            },
+            {
+              role: "AI time entry",
+              desc: "Describe your day in plain text — AI structures it instantly",
+            },
+            {
+              role: "Role-based access",
+              desc: "Each person sees only what their role permits — nothing more",
+            },
+          ].map((r) => (
             <div key={r.role} className={styles.roleItem}>
               <div className={styles.roleDot} />
               <div>
@@ -102,114 +145,177 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right panel — form */}
+      {/* ── Right panel ────────────────────────────────────────────────────── */}
       <div className={styles.right}>
         <div className={styles.formWrap}>
-
-          <div className={styles.formTitle}>Sign in</div>
-          <div className={styles.formSub}>
-            {isMock
-              ? 'Demo mode — use any quick login below'
-              : 'Enter your credentials to access the platform'}
-          </div>
-
-          <form className={styles.form} onSubmit={handleSubmit} noValidate>
-            {/* Email */}
-            <div className={styles.field}>
-              <label className={styles.label}>Email address</label>
-              <div className={styles.inputWrap}>
-                <span className={styles.inputIcon}>✉</span>
-                <input
-                  className={`${styles.input} ${error ? styles.inputError : ''}`}
-                  type="email"
-                  placeholder="you@yourcompany.com"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setError('') }}
-                  autoComplete="email"
-                  autoFocus
-                />
+          {step === "email" ? (
+            <>
+              <div className={styles.formTitle}>Sign in</div>
+              <div className={styles.formSub}>
+                Enter your work email and we'll send you a secure login code. No
+                password needed.
               </div>
-            </div>
 
-            {/* Password */}
-            <div className={styles.field}>
-              <label className={styles.label}>Password</label>
-              <div className={styles.inputWrap}>
-                <span className={styles.inputIcon}>🔒</span>
-                <input
-                  className={`${styles.input} ${styles.inputWithPad} ${error ? styles.inputError : ''}`}
-                  type={showPass ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setError('') }}
-                  autoComplete="current-password"
-                />
+              <form
+                className={styles.form}
+                onSubmit={handleRequestOtp}
+                noValidate
+              >
+                <div className={styles.field}>
+                  <label className={styles.label}>Organisation email</label>
+                  <div className={styles.inputWrap}>
+                    <span className={styles.inputIcon}>
+                      <EmailIcon fontSize="small"/>
+                    </span>
+                    <input
+                      className={`${styles.input} ${error ? styles.inputError : ""}`}
+                      type="email"
+                      placeholder="you@yourcompany.com"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setError("");
+                      }}
+                      autoComplete="email"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className={styles.errorMsg}>
+                    <span>⚠</span> {error}
+                  </div>
+                )}
+
                 <button
-                  type="button"
-                  className={styles.eyeBtn}
-                  onClick={() => setShowPass(v => !v)}
-                  tabIndex={-1}
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading}
                 >
-                  {showPass ? '🙈' : '👁'}
+                  {loading ? (
+                    <>
+                      <div className={styles.spinner} /> Sending code…
+                    </>
+                  ) : (
+                    "Send login code →"
+                  )}
                 </button>
+              </form>
+
+              <div className={styles.secNote}>
+                <div className={styles.secDot} />
+                Access is managed by your organisation. Contact your admin if
+                you need an account.
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <button
+                className={styles.backBtn}
+                onClick={() => {
+                  setStep("email");
+                  setCode("");
+                  setError("");
+                  setDevOtp(null);
+                }}
+              >
+                ← Back
+              </button>
 
-            {/* Error */}
-            {error && (
-              <div className={styles.errorMsg}>
-                <span>⚠</span> {error}
+              <div className={styles.formTitle}>Check your inbox</div>
+              <div className={styles.formSub}>
+                We sent a 6-digit code to <strong>{email}</strong>. It expires
+                in 10 minutes.
               </div>
-            )}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              className={styles.submitBtn}
-              disabled={loading}
-            >
-              {loading ? (
-                <><div className={styles.spinner} /> Signing in…</>
-              ) : (
-                'Sign in →'
-              )}
-            </button>
-          </form>
-
-          {/* Security note */}
-          <div className={styles.secNote}>
-            <div className={styles.secDot} />
-            Credentials are verified against your organisation's user list. Contact your admin to reset your password.
-          </div>
-
-          {/* Quick logins — mock mode only */}
-          {isMock && (
-            <div className={styles.quickSection}>
-              <div className={styles.quickLabel}>Quick login — demo accounts</div>
-              <div className={styles.quickList}>
-                {MOCK_USERS.map(u => (
-                  <button
-                    key={u.id}
-                    className={styles.quickBtn}
-                    onClick={() => quickLogin(u.email, u.password)}
-                    type="button"
+              {/* Dev mode banner */}
+              {devOtp && (
+                <div className={styles.devOtpBanner}>
+                  <span className={styles.devOtpLabel}>DEV</span>
+                  <span>Your code:</span>
+                  <span
+                    className={styles.devOtpCode}
+                    onClick={() => setCode(devOtp)}
+                    title="Click to fill"
                   >
-                    <div className={styles.quickAvatar}>
-                      {u.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div>
-                      <div className={styles.quickName}>{u.name}</div>
-                      <div className={styles.quickRole}>{u.role.replace(/_/g, ' ')}</div>
-                    </div>
-                    <span className={styles.quickArrow}>→</span>
-                  </button>
-                ))}
+                    {devOtp}
+                  </span>
+                  <span className={styles.devOtpHint}>click to fill</span>
+                </div>
+              )}
+
+              <form
+                className={styles.form}
+                onSubmit={handleVerifyOtp}
+                noValidate
+              >
+                <div className={styles.field}>
+                  <label className={styles.label}>6-digit code</label>
+                  <div className={styles.inputWrap}>
+                    <span className={styles.inputIcon}>🔑</span>
+                    <input
+                      className={`${styles.input} ${styles.otpInput} ${error ? styles.inputError : ""}`}
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="• • • • • •"
+                      maxLength={6}
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                        setError("");
+                      }}
+                      autoFocus
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className={styles.errorMsg}>
+                    <span>⚠</span> {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className={styles.submitBtn}
+                  disabled={loading || code.length !== 6}
+                >
+                  {loading ? (
+                    <>
+                      <div className={styles.spinner} /> Verifying…
+                    </>
+                  ) : (
+                    "Sign in →"
+                  )}
+                </button>
+              </form>
+
+              <div className={styles.secNote}>
+                <div className={styles.secDot} />
+                Didn't receive it?{" "}
+                <button
+                  className={styles.resendBtn}
+                  onClick={handleResend}
+                  disabled={loading}
+                >
+                  Resend code
+                </button>{" "}
+                or check your spam folder.
               </div>
-            </div>
+            </>
           )}
 
+          {/* Bottom branding */}
+          <div className={styles.bottomBrand}>
+            <span className={styles.bottomLogoMark}>T</span>
+            <span className={styles.bottomLogoName}>Trackly</span>
+            <span className={styles.bottomDot}>|</span>
+            <span>Work. Tracked.</span>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -7,15 +7,23 @@ export type UserRole =
   | 'finance_viewer'
 
 /* ── User object ── */
+// export interface AuthUser {
+//   id:        string
+//   name:      string
+//   email:     string
+//   role:      UserRole
+//   pod:       string | null   // for tech_lead / team_member scope
+//   avatarUrl: string | null
+// }
 export interface AuthUser {
-  id:        string
-  name:      string
-  email:     string
-  role:      UserRole
-  pod:       string | null   // for tech_lead / team_member scope
-  avatarUrl: string | null
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  pod: string | null;
+  org_id: string;
+  last_login: string | null;
 }
-
 /* ── Auth state ── */
 export interface AuthState {
   user:        AuthUser | null

@@ -6,16 +6,9 @@ import WorkTypeDonut from "./WorkTypeDonut";
 import ClientBarChart from "./ClientBarChart";
 import ActivityHeatmap from "./ActivityHeatmap";
 import styles from "./DashboardPage.module.css";
-import GroupsIcon from "@mui/icons-material/Groups";
-import BusinessIcon from "@mui/icons-material/Business";
-import {
-  Box,
-  Stack,
-  ToggleButton,
-  ToggleButtonGroup,
-  Typography,
-} from "@mui/material";
+import { Box } from "@mui/material";
 import { useState } from "react";
+
 type ChartView = "pod" | "client";
 
 export default function DashboardPage() {

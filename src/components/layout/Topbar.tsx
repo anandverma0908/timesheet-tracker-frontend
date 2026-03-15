@@ -5,6 +5,7 @@ import { getPresetDates, type DatePreset } from "@/config/queryKeys";
 import { formatDate } from "@/utils/formatters";
 import { ROLE_COLORS, ROLE_LABELS } from "@/features/auth/types";
 import styles from "./Topbar.module.css";
+import DateRangePicker from "../ui/DateRangePicker";
 
 const DATE_PRESETS: { label: string; value: DatePreset }[] = [
   { label: "Today", value: "today" },
@@ -52,10 +53,10 @@ export default function Topbar() {
     <header className={styles.topbar}>
       {/* Logo */}
       <div className={styles.logo}>
-        <div className={styles.logoMark}>⚡</div>
+        <div className={styles.logoMark}>T</div>
         <div>
-          <div className={styles.logoName}>Analytics</div>
-          <div className={styles.logoTag}>Engineering Platform</div>
+          <div className={styles.logoName}>Trackly</div>
+          <div className={styles.logoTag}>Work. Tracked.</div>
         </div>
       </div>
 
@@ -77,22 +78,7 @@ export default function Topbar() {
 
       {/* Right */}
       <div className={styles.right}>
-        <div className={styles.presets}>
-          {DATE_PRESETS.map((p) => (
-            <button
-              key={p.value}
-              className={styles.preset}
-              onClick={() => handlePreset(p.value)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.datePill}>
-          <span>📅</span>
-          <span>{formatDate(new Date().toISOString(), "MMM d, yyyy")}</span>
-        </div>
+        <DateRangePicker />
 
         <div className={styles.sep} />
 

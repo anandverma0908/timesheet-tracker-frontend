@@ -1,17 +1,19 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Toaster } from 'react-hot-toast'
-import App from './app/App'
-import { useThemeStore } from './store'
-import './styles/globals.css'
-import './styles/components.css'
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { Toaster } from "react-hot-toast";
+import App from "./app/App";
+import { useThemeStore } from "./store";
+import "./styles/globals.css";
+import "./styles/components.css";
+import { buildMuiTheme } from "./config/themes";
 
-/* ── Apply saved theme before first paint ── */
-const { themeId, colorMode } = useThemeStore.getState()
-document.documentElement.setAttribute('data-theme', themeId)
-document.documentElement.setAttribute('data-mode',  colorMode)
+/* ── Apply saved theme to <html> before first paint ── */
+const { themeId, colorMode } = useThemeStore.getState();
+document.documentElement.setAttribute("data-theme", themeId);
+document.documentElement.setAttribute("data-mode", colorMode);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,36 +24,51 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-})
+});
 
-async function bootstrap() {
-  /* ── Enable mock BEFORE React renders so api.ts sees window.__EAP_MOCK__ ── */
-  if (import.meta.env.VITE_USE_MOCK === 'true') {
-    const { enableMocks } = await import('./services/mock')
-    enableMocks()
-  }
+/* ── Root wraps ThemeProvider inside React so it re-renders on store changes ── */
+function Root() {
+  // These are reactive — any call to setTheme() or toggleMode()
+  // will re-render this component and rebuild the MUI theme instantly
+  const themeId   = useThemeStore(s => s.themeId)
+  const colorMode = useThemeStore(s => s.colorMode)
+  const muiTheme  = buildMuiTheme(themeId, colorMode)
 
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <App />
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              style: {
-                background: 'var(--surface-2)',
-                color:      'var(--text)',
-                border:     '1px solid var(--border-2)',
-                fontFamily: 'var(--font-sans)',
-                fontSize:   '13px',
-              },
-            }}
-          />
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
+  return (
+    <ThemeProvider theme={muiTheme}>
+      <CssBaseline />
+      <App />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            background: "var(--surface-2)",
+            color:      "var(--text)",
+            border:     "1px solid var(--border-2)",
+            fontFamily: "var(--font-sans)",
+            fontSize:   "13px",
+          },
+        }}
+      />
+    </ThemeProvider>
   )
 }
 
-bootstrap()
+async function bootstrap() {
+  if (import.meta.env.VITE_USE_MOCK === "true") {
+    const { enableMocks } = await import("./services/mock");
+    enableMocks();
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Root />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+}
+
+bootstrap();

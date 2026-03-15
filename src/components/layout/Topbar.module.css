@@ -35,6 +35,7 @@
 .logoMark {
   width: 34px;
   height: 34px;
+  font-weight: 900;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   border-radius: 10px;
   display: flex;

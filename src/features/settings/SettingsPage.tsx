@@ -1,204 +1,537 @@
-import { useState } from 'react'
-import toast from 'react-hot-toast'
-import { useSettingsStore, useThemeStore } from '@/store'
-import { THEMES } from '@/config/themes'
-import type { JiraConfig } from '@/types'
-import styles from './SettingsPage.module.css'
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSettingsStore, useThemeStore } from "@/store";
+import { THEMES } from "@/config/themes";
+import { getAuthHeader } from "@/features/auth/useAuthStore";
+
+const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface JiraConfig {
+  jira_url: string;
+  jira_email: string;
+  jira_api_token: string;
+  jira_project_key: string;
+  jira_client_field: string;
+  jira_pod_field: string;
+}
+
+async function fetchSettings(): Promise<JiraConfig> {
+  const res = await fetch(`${API}/api/settings`, { headers: getAuthHeader() });
+  if (!res.ok) throw new Error("Failed to load settings");
+  return res.json();
+}
+
+async function saveSettings(data: Partial<JiraConfig>): Promise<JiraConfig> {
+  const res = await fetch(`${API}/api/settings/jira`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...getAuthHeader() },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Failed to save settings");
+  }
+  return res.json();
+}
+
+async function testConnection(): Promise<void> {
+  const res = await fetch(`${API}/health`, { headers: getAuthHeader() });
+  if (!res.ok) throw new Error("Backend returned an error");
+}
+
+async function triggerSync(): Promise<void> {
+  const res = await fetch(`${API}/api/sync`, {
+    method: "POST",
+    headers: getAuthHeader(),
+  });
+  if (!res.ok) throw new Error("Sync failed");
+}
 
 export default function SettingsPage() {
-  const { jiraConfig, isConnected, setJiraConfig, clearConfig } = useSettingsStore()
-  const { themeId, colorMode, setTheme, toggleMode } = useThemeStore()
+  const queryClient = useQueryClient();
+  const { themeId, colorMode, setTheme, toggleMode } = useThemeStore();
 
   const [form, setForm] = useState<JiraConfig>({
-    jiraUrl:    jiraConfig?.jiraUrl    ?? '',
-    email:      jiraConfig?.email      ?? '',
-    apiToken:   jiraConfig?.apiToken   ?? '',
-    projectKey: jiraConfig?.projectKey ?? '',
-  })
+    jira_url: "",
+    jira_email: "",
+    jira_api_token: "",
+    jira_project_key: "",
+    jira_client_field: "customfield_10233",
+    jira_pod_field: "customfield_10193",
+  });
+  const [isTesting, setIsTesting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  const [isTesting, setIsTesting] = useState(false)
+  // ── Load current settings from DB ──────────────────────────────────────────
+  const { data: settingsData, isLoading } = useQuery({
+    queryKey: ["settings"],
+    queryFn: fetchSettings,
+  });
+
+  useEffect(() => {
+    if (!settingsData) return;
+    setForm({
+      jira_url: settingsData.jira_url || "",
+      jira_email: settingsData.jira_email || "",
+      jira_api_token: settingsData.jira_api_token || "",
+      jira_project_key: settingsData.jira_project_key || "",
+      jira_client_field: settingsData.jira_client_field || "customfield_10233",
+      jira_pod_field: settingsData.jira_pod_field || "customfield_10193",
+    });
+  }, [settingsData]);
+
+  // ── Save to DB ─────────────────────────────────────────────────────────────
+  const saveMutation = useMutation({
+    mutationFn: saveSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      toast.success("Configuration saved ✓");
+    },
+    onError: (err: any) => toast.error(err.message || "Save failed"),
+  });
 
   function handleChange(key: keyof JiraConfig, value: string) {
-    setForm(prev => ({ ...prev, [key]: value }))
+    setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   async function handleTest() {
-    setIsTesting(true)
+    setIsTesting(true);
     try {
-      const res = await fetch('/api/health')
-      if (res.ok) toast.success('Backend is reachable ✓')
-      else        toast.error('Backend returned an error')
+      await testConnection();
+      toast.success("Backend is reachable ✓");
     } catch {
-      toast.error('Cannot reach backend — is it running on :8000?')
+      toast.error("Cannot reach backend — is it running on :8000?");
     } finally {
-      setIsTesting(false)
+      setIsTesting(false);
     }
   }
 
   function handleSave() {
-    if (!form.jiraUrl || !form.email || !form.apiToken) {
-      toast.error('Please fill in all required fields')
-      return
+    console.log({form})
+    if (!form.jira_url || !form.jira_email || !form.jira_api_token) {
+      toast.error("Please fill in Jira URL, email, and API token");
+      return;
     }
-    setJiraConfig(form)
-    toast.success('Configuration saved ✓')
+    saveMutation.mutate(form);
+  }
+
+  async function handleSync() {
+    setIsSyncing(true);
+    try {
+      await triggerSync();
+      toast.success("Jira sync started in background ✓");
+    } catch {
+      toast.error("Sync failed");
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   return (
-    <div className={styles.page}>
-
-      <div className={`${styles.header} fade-up`}>
-        <div>
-          <h1 className={styles.title}>Settings</h1>
-          <p className={styles.subtitle}>Configure your Jira connection and app preferences</p>
-        </div>
+    <div
+      style={{
+        padding: "24px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 24,
+      }}
+    >
+      <div>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 24,
+            fontWeight: 800,
+            letterSpacing: "-0.04em",
+          }}
+        >
+          Settings
+        </h1>
+        <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-2)" }}>
+          Configure your Jira connection and app preferences
+        </p>
       </div>
 
-      <div className={styles.layout}>
-        <div className={styles.left}>
-
-          {/* Jira config */}
-          <div className={`${styles.block} fade-up-1`}>
-            <div className={styles.blockHeader}>
-              <span className={styles.blockIcon}>🔌</span>
-              <div>
-                <div className={styles.blockTitle}>Jira Connection</div>
-                <div className={styles.blockSub}>Your credentials are stored locally in the browser</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 340px",
+          gap: 20,
+          alignItems: "start",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* ── Jira Connection ─────────────────────────────────────────────── */}
+          <div className="card" style={{ padding: 20 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 16,
+                paddingBottom: 14,
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🔌</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>
+                  Jira Connection
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-2)" }}>
+                  Credentials are stored in the database — not in .env
+                </div>
               </div>
-              {isConnected && <div className={styles.connectedBadge}>● Connected</div>}
             </div>
-            <div className={styles.blockBody}>
-              <div className={styles.formGrid}>
-                <div className={styles.fg}>
-                  <label className={styles.fl}>Jira URL *</label>
+
+            {isLoading ? (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: 20,
+                  color: "var(--text-2)",
+                  fontSize: 13,
+                }}
+              >
+                Loading…
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                }}
+              >
+                <Field label="Jira URL *">
                   <input
                     className="input"
                     placeholder="https://yourcompany.atlassian.net"
-                    value={form.jiraUrl}
-                    onChange={e => handleChange('jiraUrl', e.target.value)}
+                    value={form.jira_url}
+                    onChange={(e) => handleChange("jira_url", e.target.value)}
                   />
-                </div>
-                <div className={styles.fg}>
-                  <label className={styles.fl}>Email *</label>
+                </Field>
+
+                <Field label="Email *">
                   <input
                     className="input"
                     type="email"
                     placeholder="you@company.com"
-                    value={form.email}
-                    onChange={e => handleChange('email', e.target.value)}
+                    value={form.jira_email}
+                    onChange={(e) => handleChange("jira_email", e.target.value)}
                   />
-                </div>
-                <div className={styles.fg} style={{ gridColumn: '1 / -1' }}>
-                  <label className={styles.fl}>API Token *</label>
+                </Field>
+
+                <Field label="API Token *" style={{ gridColumn: "1 / -1" }}>
                   <input
                     className="input"
                     type="password"
                     placeholder="ATATT3x…"
-                    value={form.apiToken}
-                    onChange={e => handleChange('apiToken', e.target.value)}
+                    value={form.jira_api_token}
+                    onChange={(e) =>
+                      handleChange("jira_api_token", e.target.value)
+                    }
                   />
-                  <span className={styles.hint}>
-                    Generate at{' '}
-                    <a href="https://id.atlassian.com/manage-profile/security/api-tokens" target="_blank" rel="noreferrer" className={styles.link}>
-                      id.atlassian.com/manage-profile/security/api-tokens
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--text-3)",
+                      marginTop: 4,
+                      display: "block",
+                    }}
+                  >
+                    Generate at{" "}
+                    <a
+                      href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "var(--accent)" }}
+                    >
+                      id.atlassian.com
                     </a>
                   </span>
-                </div>
-                <div className={styles.fg}>
-                  <label className={styles.fl}>Default Project Key</label>
+                </Field>
+
+                <Field label="Default Project Key">
                   <input
                     className="input"
                     placeholder="DPAI (or leave blank for all)"
-                    value={form.projectKey}
-                    onChange={e => handleChange('projectKey', e.target.value)}
+                    value={form.jira_project_key}
+                    onChange={(e) =>
+                      handleChange("jira_project_key", e.target.value)
+                    }
                   />
-                </div>
+                </Field>
+
+                <Field label="Client Custom Field">
+                  <input
+                    className="input"
+                    placeholder="customfield_10233"
+                    value={form.jira_client_field}
+                    onChange={(e) =>
+                      handleChange("jira_client_field", e.target.value)
+                    }
+                  />
+                </Field>
+
+                <Field label="POD Custom Field">
+                  <input
+                    className="input"
+                    placeholder="customfield_10193"
+                    value={form.jira_pod_field}
+                    onChange={(e) =>
+                      handleChange("jira_pod_field", e.target.value)
+                    }
+                  />
+                </Field>
               </div>
-              <div className={styles.formActions}>
-                <button className="btn btn-ghost btn-sm" onClick={handleTest} disabled={isTesting}>
-                  {isTesting ? '⏳ Testing…' : '⟳ Test Connection'}
-                </button>
-                <button className="btn btn-primary btn-sm" onClick={handleSave}>
-                  Save Configuration
-                </button>
-                {isConnected && (
-                  <button className="btn btn-danger btn-sm" onClick={() => { clearConfig(); toast('Config cleared') }}>
-                    Disconnect
-                  </button>
-                )}
-              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={handleTest}
+                disabled={isTesting}
+              >
+                {isTesting ? "⏳ Testing…" : "⟳ Test Connection"}
+              </button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+              >
+                {saveMutation.isPending ? "⏳ Saving…" : "Save Configuration"}
+              </button>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={handleSync}
+                disabled={isSyncing}
+                style={{ marginLeft: "auto" }}
+              >
+                {isSyncing ? "⏳ Syncing…" : "⟳ Sync Jira Now"}
+              </button>
             </div>
           </div>
 
-          {/* Theme */}
-          <div className={`${styles.block} fade-up-2`}>
-            <div className={styles.blockHeader}>
-              <span className={styles.blockIcon}>🎨</span>
+          {/* ── Appearance ──────────────────────────────────────────────────── */}
+          <div className="card" style={{ padding: 20 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 16,
+                paddingBottom: 14,
+                borderBottom: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ fontSize: 16 }}>🎨</span>
               <div>
-                <div className={styles.blockTitle}>Appearance</div>
-                <div className={styles.blockSub}>Customise accent color and light/dark mode</div>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>Appearance</div>
+                <div style={{ fontSize: 11, color: "var(--text-2)" }}>
+                  Accent color and light/dark mode
+                </div>
               </div>
             </div>
-            <div className={styles.blockBody}>
-              {/* Color themes */}
-              <div>
-                <div className={styles.fl} style={{ marginBottom: 10 }}>Accent Color</div>
-                <div className={styles.themes}>
-                  {THEMES.map(t => (
-                    <button
-                      key={t.id}
-                      className={`${styles.themeBtn} ${themeId === t.id ? styles.themeBtnActive : ''}`}
-                      onClick={() => { setTheme(t.id); toast.success(`Theme: ${t.name}`) }}
-                    >
-                      <div className={styles.themeSwatch} style={{ background: t.color }} />
-                      <span>{t.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              {/* Mode */}
-              <div>
-                <div className={styles.fl} style={{ marginBottom: 10 }}>Color Mode</div>
-                <div className={styles.modeRow}>
+            <div style={{ marginBottom: 16 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--text-2)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 10,
+                }}
+              >
+                Accent Color
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {THEMES.map((t) => (
                   <button
-                    className={`${styles.modeBtn} ${colorMode === 'dark' ? styles.modeBtnActive : ''}`}
-                    onClick={() => { if (colorMode !== 'dark') toggleMode() }}
+                    key={t.id}
+                    onClick={() => {
+                      setTheme(t.id);
+                      toast.success(`Theme: ${t.name}`);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: 12,
+                      border: `1px solid ${themeId === t.id ? t.color : "var(--border)"}`,
+                      background:
+                        themeId === t.id ? `${t.color}18` : "transparent",
+                      color: "var(--text)",
+                      transition: "all .15s",
+                    }}
                   >
-                    🌙 Dark
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: "50%",
+                        background: t.color,
+                        flexShrink: 0,
+                        display: "block",
+                      }}
+                    />
+                    {t.name}
                   </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--text-2)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  marginBottom: 10,
+                }}
+              >
+                Color Mode
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(
+                  [
+                    ["dark", "🌙 Dark"],
+                    ["light", "☀️ Light"],
+                  ] as const
+                ).map(([m, l]) => (
                   <button
-                    className={`${styles.modeBtn} ${colorMode === 'light' ? styles.modeBtnActive : ''}`}
-                    onClick={() => { if (colorMode !== 'light') toggleMode() }}
+                    key={m}
+                    onClick={() => {
+                      if (colorMode !== m) toggleMode();
+                    }}
+                    style={{
+                      padding: "6px 16px",
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                      fontSize: 12,
+                      border: `1px solid ${colorMode === m ? "var(--accent)" : "var(--border)"}`,
+                      background:
+                        colorMode === m ? "var(--accent-faint)" : "transparent",
+                      color: "var(--text)",
+                    }}
                   >
-                    ☀️ Light
+                    {l}
                   </button>
-                </div>
+                ))}
               </div>
             </div>
           </div>
-
         </div>
 
-        {/* Info card */}
-        <div className={`${styles.info} fade-up-2`}>
-          <div className={styles.infoTitle}>Quick Start</div>
-          <ol className={styles.infoList}>
-            <li>Start the backend: <code className={styles.code}>python3 -m uvicorn main:app --reload --port 8000</code></li>
-            <li>Enter your Jira URL, email, and API token above</li>
-            <li>Click <strong>Test Connection</strong> to verify</li>
-            <li>Click <strong>Save</strong> — credentials stay in your browser</li>
-            <li>Go to Dashboard — your real Jira data loads automatically</li>
+        {/* ── Info sidebar ──────────────────────────────────────────────────── */}
+        <div className="card" style={{ padding: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
+            Quick Start
+          </div>
+          <ol
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            {[
+              <>Enter your Jira URL, email, and API token above</>,
+              <>
+                Click <strong>Test Connection</strong> to verify the backend is
+                reachable
+              </>,
+              <>
+                Click <strong>Save Configuration</strong> — stored securely in
+                the database
+              </>,
+              <>
+                Click <strong>Sync Jira Now</strong> to do an immediate sync of
+                all tickets
+              </>,
+              <>
+                After that, syncs run automatically every 30 minutes in the
+                background
+              </>,
+            ].map((s, i) => (
+              <li
+                key={i}
+                style={{
+                  fontSize: 12,
+                  color: "var(--text-2)",
+                  lineHeight: 1.6,
+                }}
+              >
+                {s}
+              </li>
+            ))}
           </ol>
 
-          <div className={styles.infoTitle} style={{ marginTop: 24 }}>Security Note</div>
-          <p className={styles.infoText}>
-            Your API token is stored only in <code className={styles.code}>localStorage</code> on your machine.
-            It is never sent to any third-party service. Regenerate tokens at Atlassian if you suspect exposure.
-          </p>
+          <div
+            style={{
+              borderTop: "1px solid var(--border)",
+              marginTop: 20,
+              paddingTop: 16,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
+              Security Note
+            </div>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 12,
+                color: "var(--text-2)",
+                lineHeight: 1.6,
+              }}
+            >
+              Your API token is stored in the database — not in{" "}
+              <code>.env</code> or the browser. Regenerate tokens at Atlassian
+              if you suspect exposure.
+            </p>
+          </div>
         </div>
       </div>
-
     </div>
-  )
+  );
+}
+
+/* ── Small helper component ─────────────────────────────────────────────────── */
+function Field({
+  label,
+  children,
+  style,
+}: {
+  label: string;
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4, ...style }}>
+      <label
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--text-2)",
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
 }
