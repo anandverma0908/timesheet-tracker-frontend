@@ -269,6 +269,9 @@
   font-size: 13px;
   color: var(--text-3);
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .input {

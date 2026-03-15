@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useSettingsStore, useThemeStore } from "@/store";
+import { useThemeStore } from "@/store";
 import { THEMES } from "@/config/themes";
-import { getAuthHeader } from "@/features/auth/useAuthStore";
+import { getAuthHeader, useAuthStore } from "@/features/auth/useAuthStore";
+import styles from "./SettingsPage.module.css";
+import MultiSelect from "@/components/ui/MultiSelect";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -11,7 +13,7 @@ interface JiraConfig {
   jira_url: string;
   jira_email: string;
   jira_api_token: string;
-  jira_project_key: string;
+  jira_project_key: string; // comma-separated active projects
   jira_client_field: string;
   jira_pod_field: string;
 }
@@ -20,6 +22,13 @@ async function fetchSettings(): Promise<JiraConfig> {
   const res = await fetch(`${API}/api/settings`, { headers: getAuthHeader() });
   if (!res.ok) throw new Error("Failed to load settings");
   return res.json();
+}
+
+async function fetchAllProjects(): Promise<string[]> {
+  const res = await fetch(`${API}/api/filters`, { headers: getAuthHeader() });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.projects ?? [];
 }
 
 async function saveSettings(data: Partial<JiraConfig>): Promise<JiraConfig> {
@@ -35,11 +44,6 @@ async function saveSettings(data: Partial<JiraConfig>): Promise<JiraConfig> {
   return res.json();
 }
 
-async function testConnection(): Promise<void> {
-  const res = await fetch(`${API}/health`, { headers: getAuthHeader() });
-  if (!res.ok) throw new Error("Backend returned an error");
-}
-
 async function triggerSync(): Promise<void> {
   const res = await fetch(`${API}/api/sync`, {
     method: "POST",
@@ -51,6 +55,7 @@ async function triggerSync(): Promise<void> {
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { themeId, colorMode, setTheme, toggleMode } = useThemeStore();
+  const { can, user } = useAuthStore();
 
   const [form, setForm] = useState<JiraConfig>({
     jira_url: "",
@@ -62,11 +67,26 @@ export default function SettingsPage() {
   });
   const [isTesting, setIsTesting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [projectSearch, setProjectSearch] = useState("");
 
-  // ── Load current settings from DB ──────────────────────────────────────────
+  // Active projects — parsed from the comma-separated jira_project_key
+  const activeProjects = form.jira_project_key
+    ? form.jira_project_key
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean)
+    : [];
+
+  // Load settings
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ["settings"],
     queryFn: fetchSettings,
+  });
+
+  // Load all available projects from DB (synced from Jira)
+  const { data: allProjects = [] } = useQuery({
+    queryKey: ["all-projects"],
+    queryFn: fetchAllProjects,
   });
 
   useEffect(() => {
@@ -81,11 +101,11 @@ export default function SettingsPage() {
     });
   }, [settingsData]);
 
-  // ── Save to DB ─────────────────────────────────────────────────────────────
   const saveMutation = useMutation({
     mutationFn: saveSettings,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
+      queryClient.invalidateQueries({ queryKey: ["filters"] });
       toast.success("Configuration saved ✓");
     },
     onError: (err: any) => toast.error(err.message || "Save failed"),
@@ -95,10 +115,28 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Toggle a project in/out of the active list
+  function toggleProject(project: string) {
+    const current = activeProjects;
+    const next = current.includes(project)
+      ? current.filter((p) => p !== project)
+      : [...current, project];
+    setForm((prev) => ({ ...prev, jira_project_key: next.join(",") }));
+  }
+
+  function selectAllProjects() {
+    setForm((prev) => ({ ...prev, jira_project_key: allProjects.join(",") }));
+  }
+
+  function clearAllProjects() {
+    setForm((prev) => ({ ...prev, jira_project_key: "" }));
+  }
+
   async function handleTest() {
     setIsTesting(true);
     try {
-      await testConnection();
+      const res = await fetch(`${API}/health`, { headers: getAuthHeader() });
+      if (!res.ok) throw new Error();
       toast.success("Backend is reachable ✓");
     } catch {
       toast.error("Cannot reach backend — is it running on :8000?");
@@ -106,9 +144,8 @@ export default function SettingsPage() {
       setIsTesting(false);
     }
   }
-
+  console.log({ form });
   function handleSave() {
-    console.log({form})
     if (!form.jira_url || !form.jira_email || !form.jira_api_token) {
       toast.error("Please fill in Jira URL, email, and API token");
       return;
@@ -128,227 +165,173 @@ export default function SettingsPage() {
     }
   }
 
+  const filteredProjects = allProjects.filter((p) =>
+    p.toLowerCase().includes(projectSearch.toLowerCase()),
+  );
+
   return (
-    <div
-      style={{
-        padding: "24px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-      }}
-    >
-      <div>
-        <h1
-          style={{
-            margin: 0,
-            fontSize: 24,
-            fontWeight: 800,
-            letterSpacing: "-0.04em",
-          }}
-        >
-          Settings
-        </h1>
-        <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--text-2)" }}>
+    <div className={styles.page}>
+      <div className={styles.pageHeader}>
+        <h1 className={styles.title}>Settings</h1>
+        <p className={styles.subtitle}>
           Configure your Jira connection and app preferences
         </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 340px",
-          gap: 20,
-          alignItems: "start",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* ── Jira Connection ─────────────────────────────────────────────── */}
-          <div className="card" style={{ padding: 20 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 16,
-                paddingBottom: 14,
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <span style={{ fontSize: 16 }}>🔌</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>
-                  Jira Connection
-                </div>
-                <div style={{ fontSize: 11, color: "var(--text-2)" }}>
-                  Credentials are stored in the database — not in .env
+      <div className={styles.layout}>
+        <div className={styles.main}>
+          {/* ── Jira Connection ── */}
+          {can("manage:jira_config") && (
+            <div className="card">
+              <div className={styles.cardHeader}>
+                <span className={styles.cardIcon}>🔌</span>
+                <div>
+                  <div className={styles.cardTitle}>Jira Connection</div>
+                  <div className={styles.cardSubtitle}>
+                    Credentials are stored in the database — not in .env
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {isLoading ? (
-              <div
-                style={{
-                  textAlign: "center",
-                  padding: 20,
-                  color: "var(--text-2)",
-                  fontSize: 13,
-                }}
-              >
-                Loading…
+              {isLoading ? (
+                <div className={styles.loading}>Loading…</div>
+              ) : (
+                <div className={styles.formGrid}>
+                  <Field label="Jira URL *">
+                    <input
+                      className="input"
+                      placeholder="https://yourcompany.atlassian.net"
+                      value={form.jira_url}
+                      onChange={(e) => handleChange("jira_url", e.target.value)}
+                    />
+                  </Field>
+
+                  <Field label="Email *">
+                    <input
+                      className="input"
+                      type="email"
+                      placeholder="you@company.com"
+                      value={form.jira_email}
+                      onChange={(e) =>
+                        handleChange("jira_email", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="API Token *">
+                    <input
+                      className="input"
+                      type="password"
+                      placeholder="ATATT3x…"
+                      value={form.jira_api_token}
+                      onChange={(e) =>
+                        handleChange("jira_api_token", e.target.value)
+                      }
+                    />
+                    <span className={styles.fieldHint}>
+                      Generate at{" "}
+                      <a
+                        href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "var(--accent)" }}
+                      >
+                        id.atlassian.com
+                      </a>
+                    </span>
+                  </Field>
+                  <>
+                    {allProjects.length > 0 && (
+                      <div>
+                        <Field label="Active Projects">
+                          <MultiSelect
+                            options={allProjects}
+                            selected={activeProjects}
+                            onChange={(selected) =>
+                              setForm((prev) => ({
+                                ...prev,
+                                jira_project_key: selected.join(","),
+                              }))
+                            }
+                            placeholder="Leave empty to show all projects"
+                          />
+                          <span className={styles.fieldHint}>
+                            {activeProjects.length === 0
+                              ? "No filter — all projects visible to everyone"
+                              : `${activeProjects.length} of ${allProjects.length} projects selected`}
+                          </span>
+                        </Field>
+                      </div>
+                    )}
+                  </>
+
+                  <Field label="Client Custom Field">
+                    <input
+                      className="input"
+                      placeholder="customfield_10233"
+                      value={form.jira_client_field}
+                      onChange={(e) =>
+                        handleChange("jira_client_field", e.target.value)
+                      }
+                    />
+                  </Field>
+
+                  <Field label="POD Custom Field">
+                    <input
+                      className="input"
+                      placeholder="customfield_10193"
+                      value={form.jira_pod_field}
+                      onChange={(e) =>
+                        handleChange("jira_pod_field", e.target.value)
+                      }
+                    />
+                  </Field>
+                </div>
+              )}
+
+              {/* Active Projects — inline with Jira config */}
+              <div className={styles.cardActions}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleTest}
+                  disabled={isTesting}
+                >
+                  {isTesting ? "⏳ Testing…" : "⟳ Test Connection"}
+                </button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={handleSave}
+                  disabled={saveMutation.isPending}
+                >
+                  {saveMutation.isPending ? "⏳ Saving…" : "Save Configuration"}
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleSync}
+                  disabled={isSyncing}
+                  style={{ marginLeft: "auto" }}
+                >
+                  {isSyncing ? "⏳ Syncing…" : "⟳ Sync Jira Now"}
+                </button>
               </div>
-            ) : (
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
-                <Field label="Jira URL *">
-                  <input
-                    className="input"
-                    placeholder="https://yourcompany.atlassian.net"
-                    value={form.jira_url}
-                    onChange={(e) => handleChange("jira_url", e.target.value)}
-                  />
-                </Field>
-
-                <Field label="Email *">
-                  <input
-                    className="input"
-                    type="email"
-                    placeholder="you@company.com"
-                    value={form.jira_email}
-                    onChange={(e) => handleChange("jira_email", e.target.value)}
-                  />
-                </Field>
-
-                <Field label="API Token *" style={{ gridColumn: "1 / -1" }}>
-                  <input
-                    className="input"
-                    type="password"
-                    placeholder="ATATT3x…"
-                    value={form.jira_api_token}
-                    onChange={(e) =>
-                      handleChange("jira_api_token", e.target.value)
-                    }
-                  />
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-3)",
-                      marginTop: 4,
-                      display: "block",
-                    }}
-                  >
-                    Generate at{" "}
-                    <a
-                      href="https://id.atlassian.com/manage-profile/security/api-tokens"
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: "var(--accent)" }}
-                    >
-                      id.atlassian.com
-                    </a>
-                  </span>
-                </Field>
-
-                <Field label="Default Project Key">
-                  <input
-                    className="input"
-                    placeholder="DPAI (or leave blank for all)"
-                    value={form.jira_project_key}
-                    onChange={(e) =>
-                      handleChange("jira_project_key", e.target.value)
-                    }
-                  />
-                </Field>
-
-                <Field label="Client Custom Field">
-                  <input
-                    className="input"
-                    placeholder="customfield_10233"
-                    value={form.jira_client_field}
-                    onChange={(e) =>
-                      handleChange("jira_client_field", e.target.value)
-                    }
-                  />
-                </Field>
-
-                <Field label="POD Custom Field">
-                  <input
-                    className="input"
-                    placeholder="customfield_10193"
-                    value={form.jira_pod_field}
-                    onChange={(e) =>
-                      handleChange("jira_pod_field", e.target.value)
-                    }
-                  />
-                </Field>
-              </div>
-            )}
-
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleTest}
-                disabled={isTesting}
-              >
-                {isTesting ? "⏳ Testing…" : "⟳ Test Connection"}
-              </button>
-              <button
-                className="btn btn-primary btn-sm"
-                onClick={handleSave}
-                disabled={saveMutation.isPending}
-              >
-                {saveMutation.isPending ? "⏳ Saving…" : "Save Configuration"}
-              </button>
-              <button
-                className="btn btn-ghost btn-sm"
-                onClick={handleSync}
-                disabled={isSyncing}
-                style={{ marginLeft: "auto" }}
-              >
-                {isSyncing ? "⏳ Syncing…" : "⟳ Sync Jira Now"}
-              </button>
             </div>
-          </div>
+          )}
 
-          {/* ── Appearance ──────────────────────────────────────────────────── */}
-          <div className="card" style={{ padding: 20 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                marginBottom: 16,
-                paddingBottom: 14,
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <span style={{ fontSize: 16 }}>🎨</span>
+          {/* ── Appearance ── */}
+          <div className="card">
+            <div className={styles.cardHeader}>
+              <span className={styles.cardIcon}>🎨</span>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>Appearance</div>
-                <div style={{ fontSize: 11, color: "var(--text-2)" }}>
+                <div className={styles.cardTitle}>Appearance</div>
+                <div className={styles.cardSubtitle}>
                   Accent color and light/dark mode
                 </div>
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  marginBottom: 10,
-                }}
-              >
-                Accent Color
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className={styles.appearanceSection}>
+              <div className={styles.appearanceLabel}>Accent Color</div>
+              <div className={styles.themeRow}>
                 {THEMES.map((t) => (
                   <button
                     key={t.id}
@@ -356,26 +339,17 @@ export default function SettingsPage() {
                       setTheme(t.id);
                       toast.success(`Theme: ${t.name}`);
                     }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: 12,
-                      border: `1px solid ${themeId === t.id ? t.color : "var(--border)"}`,
-                      background:
-                        themeId === t.id ? `${t.color}18` : "transparent",
-                      color: "var(--text)",
-                      transition: "all .15s",
-                    }}
+                    className={`${styles.themePill} ${themeId === t.id ? styles.themePillActive : ""}`}
+                    style={
+                      themeId === t.id
+                        ? { borderColor: t.color, background: `${t.color}18` }
+                        : {}
+                    }
                   >
                     <span
                       style={{
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         borderRadius: "50%",
                         background: t.color,
                         flexShrink: 0,
@@ -388,20 +362,9 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--text-2)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.08em",
-                  marginBottom: 10,
-                }}
-              >
-                Color Mode
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
+            <div className={styles.appearanceSection}>
+              <div className={styles.appearanceLabel}>Color Mode</div>
+              <div className={styles.themeRow}>
                 {(
                   [
                     ["dark", "🌙 Dark"],
@@ -413,17 +376,7 @@ export default function SettingsPage() {
                     onClick={() => {
                       if (colorMode !== m) toggleMode();
                     }}
-                    style={{
-                      padding: "6px 16px",
-                      borderRadius: 8,
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      fontSize: 12,
-                      border: `1px solid ${colorMode === m ? "var(--accent)" : "var(--border)"}`,
-                      background:
-                        colorMode === m ? "var(--accent-faint)" : "transparent",
-                      color: "var(--text)",
-                    }}
+                    className={`${styles.themePill} ${colorMode === m ? styles.themePillActive : ""}`}
                   >
                     {l}
                   </button>
@@ -433,93 +386,130 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* ── Info sidebar ──────────────────────────────────────────────────── */}
-        <div className="card" style={{ padding: 20 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
-            Quick Start
-          </div>
-          <ol
-            style={{
-              margin: 0,
-              paddingLeft: 18,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {[
-              <>Enter your Jira URL, email, and API token above</>,
-              <>
-                Click <strong>Test Connection</strong> to verify the backend is
-                reachable
-              </>,
-              <>
-                Click <strong>Save Configuration</strong> — stored securely in
-                the database
-              </>,
-              <>
-                Click <strong>Sync Jira Now</strong> to do an immediate sync of
-                all tickets
-              </>,
-              <>
-                After that, syncs run automatically every 30 minutes in the
-                background
-              </>,
-            ].map((s, i) => (
-              <li
-                key={i}
+        {/* ── Sidebar ── */}
+        {/* ── Sidebar ── */}
+        <div className="card" style={{ padding: 20, alignSelf: "start" }}>
+          {/* Quick Start — admin only */}
+          {user?.role === "admin" && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
+                Quick Start
+              </div>
+              <ol
                 style={{
+                  margin: 0,
+                  paddingLeft: 18,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 10,
+                }}
+              >
+                {[
+                  <>Enter your Jira URL, email, and API token</>,
+                  <>
+                    <strong>Test Connection</strong> to verify the backend is
+                    reachable
+                  </>,
+                  <>
+                    <strong>Save Configuration</strong> — stored securely in the
+                    database
+                  </>,
+                  <>
+                    <strong>Sync Jira Now</strong> to pull all tickets
+                    immediately
+                  </>,
+                  <>
+                    Go to <strong>Active Projects</strong> and select which
+                    projects to show
+                  </>,
+                  <>
+                    Save Projects — only those tickets will appear across the
+                    app
+                  </>,
+                ].map((s, i) => (
+                  <li
+                    key={i}
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-2)",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {s}
+                  </li>
+                ))}
+              </ol>
+
+              <div
+                style={{
+                  borderTop: "1px solid var(--border)",
+                  marginTop: 20,
+                  paddingTop: 16,
+                }}
+              >
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
+                  How project filter works
+                </div>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 12,
+                    color: "var(--text-2)",
+                    lineHeight: 1.6,
+                  }}
+                >
+                  All Jira data is synced to the database. When you select
+                  active projects here, the backend filters all queries —
+                  tickets, dashboard, team — to only those projects. Deselect
+                  all to show everything.
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Appearance info — visible to all */}
+          {user?.role !== "admin" && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12 }}>
+                Appearance
+              </div>
+              <p
+                style={{
+                  margin: 0,
                   fontSize: 12,
                   color: "var(--text-2)",
                   lineHeight: 1.6,
                 }}
               >
-                {s}
-              </li>
-            ))}
-          </ol>
-
-          <div
-            style={{
-              borderTop: "1px solid var(--border)",
-              marginTop: 20,
-              paddingTop: 16,
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>
-              Security Note
-            </div>
-            <p
-              style={{
-                margin: 0,
-                fontSize: 12,
-                color: "var(--text-2)",
-                lineHeight: 1.6,
-              }}
-            >
-              Your API token is stored in the database — not in{" "}
-              <code>.env</code> or the browser. Regenerate tokens at Atlassian
-              if you suspect exposure.
-            </p>
-          </div>
+                Customise your accent colour and switch between light and dark
+                mode. These preferences are saved locally to your browser.
+              </p>
+            </>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Small helper component ─────────────────────────────────────────────────── */
 function Field({
   label,
   children,
-  style,
+  fullWidth,
 }: {
   label: string;
   children: React.ReactNode;
-  style?: React.CSSProperties;
+  fullWidth?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, ...style }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        gridColumn: fullWidth ? "1 / -1" : undefined,
+      }}
+    >
       <label
         style={{
           fontSize: 11,

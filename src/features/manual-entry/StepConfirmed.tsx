@@ -1,5 +1,7 @@
 import type { ManualEntry } from "./types";
-import { formatNumber } from "@/utils/formatters";
+import { formatNumber, formatDate } from "@/utils/formatters";
+import DataTable, { Column } from "@/components/ui/DataTable";
+import { Badge } from "@/components/ui/Badge";
 import styles from "./ManualEntryPage.module.css";
 
 interface StepConfirmedProps {
@@ -9,16 +11,98 @@ interface StepConfirmedProps {
   onExport: () => void;
 }
 
-const TYPE_COLORS: Record<string, string> = {
-  Meeting: styles.typeMeeting ?? "badge-purple",
-  Planning: styles.typePlanning ?? "badge-blue",
-  Review: styles.typeReview ?? "badge-amber",
-  "1:1": styles.type11 ?? "badge-green",
-  Interview: styles.typeInterview ?? "badge-cyan",
-  Reporting: styles.typeReporting ?? "badge-gray",
-  Training: styles.typeTraining ?? "badge-gray",
-  Other: styles.typeOther ?? "badge-gray",
-};
+const COLUMNS: Column<ManualEntry>[] = [
+  {
+    key: "date",
+    label: "Date",
+    width: 100,
+    sortable: true,
+    render: (e) => (
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 11,
+          color: "var(--text-2)",
+        }}
+      >
+        {e.date}
+      </span>
+    ),
+  },
+  {
+    key: "activity",
+    label: "Activity",
+    width: 340,
+    render: (e) => (
+      <span
+        style={{ color: "var(--text)", fontWeight: 500 }}
+        title={e.activity}
+      >
+        {e.activity}
+      </span>
+    ),
+  },
+  {
+    key: "hours",
+    label: "Hours",
+    width: 70,
+    sortable: true,
+    render: (e) => (
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontWeight: 700,
+          color: "var(--green)",
+        }}
+      >
+        {e.hours}h
+      </span>
+    ),
+  },
+  {
+    key: "pod",
+    label: "POD",
+    width: 90,
+    render: (e) =>
+      e.pod ? (
+        <span className="badge badge-blue">{e.pod}</span>
+      ) : (
+        <span style={{ color: "var(--text-3)" }}>—</span>
+      ),
+  },
+  {
+    key: "client",
+    label: "Client",
+    width: 110,
+    render: (e) =>
+      e.client ? (
+        <span className="badge badge-amber">{e.client}</span>
+      ) : (
+        <span style={{ color: "var(--text-3)" }}>—</span>
+      ),
+  },
+  {
+    key: "type",
+    label: "Type",
+    width: 130,
+    render: (e) => <span className="badge badge-purple">{e.type}</span>,
+  },
+  {
+    key: "notes",
+    label: "Notes",
+    width: 180,
+    render: (e) =>
+      e.notes ? (
+        <span
+          style={{ fontSize: 11, color: "var(--text-2)", fontStyle: "italic" }}
+        >
+          {e.notes}
+        </span>
+      ) : (
+        <span style={{ color: "var(--text-3)" }}>—</span>
+      ),
+  },
+];
 
 export default function StepConfirmed({
   entries,
@@ -48,62 +132,19 @@ export default function StepConfirmed({
         </div>
       </div>
 
-      {/* Summary table */}
-      <div className={styles.tableCard}>
-        <div className={styles.tableHeader}>
-          <span className={styles.tableTitle}>Logged entries</span>
-          <span className={styles.totalHours}>
-            {formatNumber(Math.round(totalHours * 4) / 4)}h · {entries.length}{" "}
-            activities
-          </span>
-        </div>
-        <div className={styles.tableScroll}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Activity</th>
-                <th>Hours</th>
-                <th>POD</th>
-                <th>Client</th>
-                <th>Type</th>
-                <th>Notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id}>
-                  <td className={styles.dateCell}>{e.date}</td>
-                  <td className={styles.activityCell}>{e.activity}</td>
-                  <td>
-                    <span className={styles.hoursCell}>{e.hours}h</span>
-                  </td>
-                  <td>
-                    {e.pod ? (
-                      <span className="badge badge-blue">{e.pod}</span>
-                    ) : (
-                      <span className={styles.cellEmpty}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    {e.client ? (
-                      <span className="badge badge-amber">{e.client}</span>
-                    ) : (
-                      <span className={styles.cellEmpty}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="badge badge-purple">{e.type}</span>
-                  </td>
-                  <td className={styles.notesCell}>
-                    {e.notes || <span className={styles.cellEmpty}>—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Table */}
+      <DataTable<ManualEntry>
+        columns={COLUMNS}
+        rows={entries}
+        rowKey="id"
+        virtualize={false}
+        maxHeight={420}
+        footerLeft={`${entries.length} activities`}
+        footerRight={`${formatNumber(Math.round(totalHours * 4) / 4)}h total`}
+        emptyIcon="📭"
+        emptyTitle="No entries"
+        emptyDesc=""
+      />
     </div>
   );
 }

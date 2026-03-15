@@ -207,3 +207,214 @@
   border-radius: 100px;
   transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
 }
+
+/* ── Paste at the bottom of TeamPage.module.css ── */
+
+/* ── Main controls card ── */
+.controlsCard {
+  background:    var(--surface);
+  border:        1px solid var(--border-2);
+  border-radius: var(--r);
+  overflow:      hidden;
+}
+
+/* ── Stats strip ── */
+.statsStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+
+.stripStat {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  padding:     12px 18px;
+  border-right: 1px solid var(--border);
+  transition:  background 0.15s;
+}
+.stripStat:last-child { border-right: none; }
+.stripStat:hover      { background: var(--surface-2); }
+
+.stripIcon {
+  font-size:   16px;
+  opacity:     0.5;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.stripVal {
+  font-size:      18px;
+  font-weight:    800;
+  letter-spacing: -0.04em;
+  font-family:    var(--font-mono);
+  color:          var(--text);
+  line-height:    1;
+}
+
+.stripLbl {
+  font-size:      9px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color:          var(--text-3);
+  margin-top:     2px;
+}
+
+/* ── Divider ── */
+.controlsDivider {
+  height:     1px;
+  background: var(--border);
+}
+
+/* ── Filter row ── */
+.filterRow {
+  display:     flex;
+  align-items: center;
+  gap:         16px;
+  padding:     10px 0px;
+  flex-wrap:   wrap;
+}
+
+.filterLeft {
+  display:     flex;
+  align-items: center;
+  gap:         10px;
+  flex:        1;
+  flex-wrap:   wrap;
+}
+
+.filterLabel {
+  font-size:      10px;
+  font-weight:    700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color:          var(--text-3);
+  white-space:    nowrap;
+  flex-shrink:    0;
+}
+
+/* ── Pill group ── */
+.pillGroup {
+  display:     flex;
+  align-items: center;
+  gap:         5px;
+  flex-wrap:   wrap;
+}
+
+.pill {
+  display:       flex;
+  align-items:   center;
+  gap:           4px;
+  padding:       4px 12px;
+  border-radius: 100px;
+  border:        1px solid var(--border-2);
+  background:    var(--surface-2);
+  font-size:     11px;
+  font-weight:   600;
+  color:         var(--text-2);
+  cursor:        pointer;
+  transition:    all 0.15s;
+  font-family:   var(--font-sans);
+  white-space:   nowrap;
+}
+.pill:hover   { border-color: var(--border-3); color: var(--text); }
+.pillActive   { background: var(--accent-glow); border-color: var(--accent-border); color: var(--accent); }
+
+.pillCheck {
+  font-size:  9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.clearBtn {
+  padding:       4px 10px;
+  border-radius: 100px;
+  border:        1px solid var(--border-2);
+  background:    transparent;
+  font-size:     11px;
+  font-weight:   600;
+  color:         var(--text-3);
+  cursor:        pointer;
+  transition:    all 0.15s;
+  font-family:   var(--font-sans);
+}
+.clearBtn:hover { color: var(--text); border-color: var(--border-3); }
+
+/* ── Search ── */
+.filterRight { flex-shrink: 0; }
+
+.searchWrap {
+  display:       flex;
+  align-items:   center;
+  gap:           7px;
+  background:    var(--surface-2);
+  border:        1px solid var(--border-2);
+  border-radius: var(--r);
+  padding:       5px 12px;
+  transition:    border-color 0.15s;
+}
+.searchWrap:focus-within { border-color: var(--accent-border); }
+
+.searchIcon { font-size: 12px; opacity: 0.5; flex-shrink: 0; }
+
+.searchInput {
+  background:  transparent;
+  border:      none;
+  outline:     none;
+  font-size:   12px;
+  font-weight: 500;
+  color:       var(--text);
+  font-family: var(--font-sans);
+  width:       180px;
+}
+.searchInput::placeholder { color: var(--text-3); }
+
+.searchClear {
+  background: none;
+  border:     none;
+  cursor:     pointer;
+  font-size:  10px;
+  color:      var(--text-3);
+  padding:    0;
+  font-family: var(--font-sans);
+  line-height: 1;
+  transition: color 0.12s;
+  flex-shrink: 0;
+}
+.searchClear:hover { color: var(--text); }
+
+/* ── Active filter chips ── */
+.activeChips {
+  display:     flex;
+  align-items: center;
+  gap:         6px;
+  flex-wrap:   wrap;
+  padding:     6px 16px 10px;
+}
+
+.activeChip {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  font-size:     10px;
+  font-weight:   700;
+  padding:       2px 8px 2px 10px;
+  border-radius: 100px;
+  border:        1px solid;
+  white-space:   nowrap;
+}
+
+.chipX {
+  background:  none;
+  border:      none;
+  cursor:      pointer;
+  font-size:   9px;
+  color:       inherit;
+  opacity:     0.6;
+  padding:     0;
+  font-family: var(--font-sans);
+  line-height: 1;
+  transition:  opacity 0.12s;
+}
+.chipX:hover { opacity: 1; }

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import toast from "react-hot-toast";
 import { useFilterStore } from "@/store";
 import { fetchSummary } from "@/services/api";
 import { QUERY_KEYS } from "@/config/queryKeys";
@@ -13,15 +12,12 @@ import EngineerDrawer from "./EngineerDrawer";
 import { SummaryByUser } from "@/types";
 
 export default function TeamPage() {
-  const pods = useFilterStore((s) => s.pods);
-  const clients = useFilterStore((s) => s.clients);
   const [search, setSearch] = useState("");
   const [selectedEngineer, setSelectedEngineer] =
     useState<SummaryByUser | null>(null);
   const debouncedSearch = useDebounce(search, 250);
   const filters = useFilterStore();
-
-  console.log({ selectedEngineer });
+  const { clearPods, togglePod, pods, clients } = useFilterStore();
 
   const { data, isLoading } = useQuery({
     queryKey: QUERY_KEYS.summary({
@@ -74,59 +70,35 @@ export default function TeamPage() {
           <p className={styles.subtitle}>
             {isLoading
               ? "Loading…"
-              : `${engineers.length} engineers · ${allPods.length} PODs`}
+              : `${engineers.length} engineers across ${new Set(data?.by_pod.map((p) => p.pod)).size} PODs — click any card to view their worklog.`}
           </p>
         </div>
-        {/* <div className={styles.actions}>
-          <button className="btn btn-ghost btn-sm">Sort: Hours ↓</button>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => toast.success("Team report downloading…")}
-          >
-            ↓ Export
-          </button>
-        </div> */}
       </div>
 
-      {/* Controls */}
-      {/* <div className={`${styles.controls} fade-up-1`}>
-        <span className={styles.podLabel}>POD:</span>
-
-        <button
-          className={`${styles.podPill} ${!selectedPod ? styles.podPillActive : ""}`}
-          // onClick={() => setSelectedPod(null)}
-        >
-          All
-        </button>
-
-        {allPods.map((pod) => (
-          <button
-            key={pod}
-            className={`${styles.podPill} ${selectedPod === pod ? styles.podPillActive : ""}`}
-            style={
-              selectedPod === pod
-                ? {
-                    background: getPodColor(pod),
-                    borderColor: getPodColor(pod),
-                  }
-                : {}
-            }
-            onClick={() => setSelectedPod(pod === selectedPod ? null : pod)}
-          >
-            {pod}
-          </button>
-        ))}
-
-        <div style={{ marginLeft: "auto" }}>
-          <input
-            className="input input-sm"
-            style={{ width: 190, borderRadius: "100px" }}
-            placeholder="🔍  Search engineer…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+      {/* Filter row */}
+      <div className={styles.filterRow}>
+        {/* Left: POD filter */}
+        {/* Right: search */}
+        <div className={styles.filterRight}>
+          <div className={styles.searchWrap}>
+            <span className={styles.searchIcon}>🔍</span>
+            <input
+              className={styles.searchInput}
+              placeholder="Search engineer…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                className={styles.searchClear}
+                onClick={() => setSearch("")}
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
-      </div> */}
+      </div>
 
       {/* Grid */}
       {isLoading ? (

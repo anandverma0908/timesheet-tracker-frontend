@@ -21,9 +21,9 @@ export default function DashboardPage() {
       {/* Page header */}
       <Box className={`${styles.header} fade-up`}>
         <Box>
-          <h1 className={styles.title}>Overview</h1>
+          <h1 className={styles.title}>Dashboard</h1>
           <p className={styles.subtitle}>
-            All Projects · All PODs · March 2026
+            Track hours, tickets and team performance across your organisation.
           </p>
         </Box>
         <Box className={styles.actions}>
@@ -41,7 +41,7 @@ export default function DashboardPage() {
                 gap: "0.25rem",
               }}
             >
-              <IoMdSync fontSize={15}/> Sync Jira
+              <IoMdSync fontSize={15} /> Sync Jira
             </Box>
           </button>
         </Box>
