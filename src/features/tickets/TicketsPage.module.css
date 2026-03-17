@@ -33,19 +33,25 @@
 /* AI bar */
 .aiWrap {
   background: var(--surface);
-  border: 1.5px solid rgba(79,126,255,.25);
+  border: 1.5px solid rgba(79, 126, 255, 0.25);
   border-radius: var(--r);
   padding: 2px;
-  box-shadow: 0 0 0 4px rgba(79,126,255,.04), 0 4px 24px rgba(0,0,0,.2);
+  box-shadow:
+    0 0 0 4px rgba(79, 126, 255, 0.04),
+    0 4px 24px rgba(0, 0, 0, 0.2);
   position: relative;
   overflow: hidden;
 }
 
 .aiWrap::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(79,126,255,.05), rgba(167,139,250,.03));
+  background: linear-gradient(
+    135deg,
+    rgba(79, 126, 255, 0.05),
+    rgba(167, 139, 250, 0.03)
+  );
   pointer-events: none;
 }
 
@@ -75,13 +81,18 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.7);
+  background: rgba(255, 255, 255, 0.7);
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.3; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
 
 .aiInput {
@@ -94,7 +105,9 @@
   background: transparent;
 }
 
-.aiInput::placeholder { color: var(--text-3); }
+.aiInput::placeholder {
+  color: var(--text-3);
+}
 
 .aiClear {
   background: none;
@@ -105,7 +118,9 @@
   padding: 2px 6px;
   transition: color 0.2s;
 }
-.aiClear:hover { color: var(--text-2); }
+.aiClear:hover {
+  color: var(--text-2);
+}
 
 .aiKbd {
   font-family: var(--font-mono);
@@ -169,7 +184,7 @@
 }
 
 .searchInline {
-  border-radius: 100px !important;
+  border-radius: var(--r) !important;
 }
 
 /* Table */
@@ -206,16 +221,22 @@
   flex-shrink: 0;
 }
 
-.th:hover { color: var(--text-2); }
+.th:hover {
+  color: var(--text-2);
+}
 
-.thSorted { color: var(--accent) !important; }
+.thSorted {
+  color: var(--accent) !important;
+}
 
 .thArr {
   font-size: 9px;
   opacity: 0.4;
 }
 
-.thSorted .thArr { opacity: 1; }
+.thSorted .thArr {
+  opacity: 1;
+}
 
 .tableBody {
   overflow-y: auto;
@@ -230,8 +251,12 @@
   transition: background 0.15s;
 }
 
-.row:hover { background: var(--surface-2); }
-.row:last-child { border-bottom: none; }
+.row:hover {
+  background: var(--surface-2);
+}
+.row:last-child {
+  border-bottom: none;
+}
 
 .td {
   padding: 10px 13px;
@@ -240,7 +265,9 @@
   overflow: hidden;
 }
 
-.dim { color: var(--text-2); }
+.dim {
+  color: var(--text-2);
+}
 
 .key {
   font-family: var(--font-mono);

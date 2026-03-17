@@ -144,7 +144,6 @@ export default function SettingsPage() {
       setIsTesting(false);
     }
   }
-  console.log({ form });
   function handleSave() {
     if (!form.jira_url || !form.jira_email || !form.jira_api_token) {
       toast.error("Please fill in Jira URL, email, and API token");

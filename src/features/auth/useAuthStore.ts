@@ -29,18 +29,27 @@ const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     "manage:jira_config",
     "manage:users",
     "view:all",
+    "view:teams",
+    "view:tickets",
     "export:all",
-    "entry:manual",
   ],
   engineering_manager: [
     "view:all",
     "export:all",
     "entry:manual",
+    "view:teams",
+    "view:tickets",
     "manage:settings",
   ],
-  tech_lead: ["view:pod", "entry:manual", "manage:settings"],
-  team_member: ["view:own", "entry:manual", "manage:settings"],
-  finance_viewer: ["view:summary", "export:all", "manage:settings"],
+  tech_lead: [
+    "view:pod",
+    "entry:manual",
+    "view:teams",
+    "view:tickets",
+    "manage:settings",
+  ],
+  team_member: ["view:own", "entry:manual", "view:tickets", "manage:settings"],
+  finance_viewer: ["view:summary", "view:teams", "manage:settings"],
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -81,7 +90,7 @@ export const useAuthStore = create<AuthStore>()(
         const { user } = get();
         if (!user) return false;
         const perms = ROLE_PERMISSIONS[user.role] ?? [];
-        return perms.includes("manage:all") || perms.includes(action);
+        return perms.includes(action);
       },
 
       canAccessRoute: (path: string) => {

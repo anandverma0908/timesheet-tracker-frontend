@@ -209,7 +209,7 @@ export default function TicketsPage() {
 
       {/* Filter bar */}
       <div className={`${styles.filterBar} fade-up-2`}>
-        <span className={styles.filterLabel}>Filters</span>
+        <span className={styles.filterLabel}>Filters: </span>
         <input
           className={`input input-sm ${styles.searchInline}`}
           placeholder="Search tickets…"
@@ -222,7 +222,6 @@ export default function TicketsPage() {
             {f.label} <span className="chip-close">✕</span>
           </button>
         ))}
-        <button className="chip chip-add">＋ Add Filter</button>
         {activeFilters.length > 0 && (
           <button
             className="btn btn-ghost btn-sm"

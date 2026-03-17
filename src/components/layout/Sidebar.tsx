@@ -200,7 +200,7 @@ export default function Sidebar() {
   const location = useLocation();
   const { pods, clients, togglePod, toggleClient, clearPods, clearClients } =
     useFilterStore();
-  const { can } = useAuthStore();
+  const { can, user } = useAuthStore();
 
   const { data: filters } = useQuery({
     queryKey: QUERY_KEYS.filters(),
@@ -222,13 +222,15 @@ export default function Sidebar() {
           active={location.pathname === "/dashboard"}
           onClick={() => navigate("/dashboard")}
         />
-        <NavItem
-          label="Tickets"
-          icon="≡"
-          active={location.pathname === "/tickets"}
-          onClick={() => navigate("/tickets")}
-        />
-        {!can("view:own") && (
+        {can("view:tickets") && (
+          <NavItem
+            label="Tickets"
+            icon="≡"
+            active={location.pathname === "/tickets"}
+            onClick={() => navigate("/tickets")}
+          />
+        )}
+        {can("view:teams") && (
           <NavItem
             label="Team"
             icon="◎"
@@ -236,12 +238,14 @@ export default function Sidebar() {
             onClick={() => navigate("/team")}
           />
         )}
-        <NavItem
-          label="Timesheets"
-          icon="✦"
-          active={location.pathname === "/manual-entry"}
-          onClick={() => navigate("/manual-entry")}
-        />
+        {can("entry:manual") && (
+          <NavItem
+            label="Timesheets"
+            icon="✦"
+            active={location.pathname === "/manual-entry"}
+            onClick={() => navigate("/manual-entry")}
+          />
+        )}
         {can("export:all") && (
           <NavItem
             label="Export"
