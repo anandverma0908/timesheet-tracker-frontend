@@ -48,7 +48,7 @@ const ROLE_PERMISSIONS: Record<UserRole, string[]> = {
     "view:tickets",
     "manage:settings",
   ],
-  team_member: ["view:own", "entry:manual", "view:tickets", "manage:settings"],
+  team_member: ["view:own", "entry:manual", "manage:settings"],
   finance_viewer: ["view:summary", "view:teams", "manage:settings"],
 };
 

@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchTickets } from "@/services/api";
+import { useFilterStore } from "@/store";
+import { useAuthStore } from "../auth/useAuthStore";
 import {
   initials,
   formatNumber,
@@ -30,7 +32,6 @@ function getColor(name: string) {
   return COLORS[Math.abs(h) % COLORS.length];
 }
 
-/* ── Unified row type for table — covers both Jira tickets and manual entries ── */
 interface DrawerRow {
   id: string;
   source: "jira" | "manual";
@@ -49,7 +50,7 @@ const COLUMNS: Column<DrawerRow>[] = [
   {
     key: "source",
     label: "",
-    width: 70,
+    width: 110,
     render: (r) => (
       <span
         style={{
@@ -103,12 +104,7 @@ const COLUMNS: Column<DrawerRow>[] = [
     width: 90,
     render: (r) => <PODBadge pod={r.pod} />,
   },
-  {
-    key: "client",
-    label: "Client",
-    width: 110,
-    className: "dim",
-  },
+  { key: "client", label: "Client", width: 110, className: "dim" },
   {
     key: "status",
     label: "Status",
@@ -125,7 +121,7 @@ const COLUMNS: Column<DrawerRow>[] = [
   {
     key: "hours_spent",
     label: "Hours",
-    width: 70,
+    width: 90,
     sortable: true,
     className: "hours",
     render: (r) => formatHours(r.hours_spent),
@@ -180,20 +176,48 @@ export default function EngineerDrawer({
   dateTo,
   onClose,
 }: Props) {
+  const { pods, clients } = useFilterStore();
+  const getScopedPod = useAuthStore((s) => s.getScopedPod);
+  const scopedPod = getScopedPod();
+  const effectivePods = pods.length > 0 ? pods : scopedPod ? [scopedPod] : [];
+
   /* Jira tickets */
   const { data: ticketData, isLoading: ticketsLoading } = useQuery({
-    queryKey: ["engineer-tickets", engineer?.user, dateFrom, dateTo],
-    queryFn: () => fetchTickets({ user: engineer!.user, dateFrom, dateTo }),
+    queryKey: [
+      "engineer-tickets",
+      engineer?.user,
+      dateFrom,
+      dateTo,
+      effectivePods,
+      clients,
+    ],
+    queryFn: () =>
+      fetchTickets({
+        user: engineer!.user,
+        dateFrom,
+        dateTo,
+        pods: effectivePods,
+        clients,
+      }),
     enabled: !!engineer,
   });
 
   /* Manual entries */
   const { data: manualData, isLoading: manualLoading } = useQuery({
-    queryKey: ["engineer-manual", engineer?.user, dateFrom, dateTo],
+    queryKey: [
+      "engineer-manual",
+      engineer?.user,
+      dateFrom,
+      dateTo,
+      effectivePods,
+      clients,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({ user: engineer!.user });
       if (dateFrom) params.append("date_from", dateFrom);
       if (dateTo) params.append("date_to", dateTo);
+      if (effectivePods.length) params.append("pod", effectivePods.join(","));
+      if (clients.length) params.append("client", clients.join(","));
       const res = await fetch(`${API}/api/manual-entries?${params}`, {
         headers: getAuthHeader(),
       });
@@ -202,13 +226,22 @@ export default function EngineerDrawer({
     enabled: !!engineer,
   });
 
-  /* Stats from dedicated endpoint */
+  /* Stats */
   const { data: stats } = useQuery<EngineerStats>({
-    queryKey: ["engineer-stats", engineer?.user, dateFrom, dateTo],
+    queryKey: [
+      "engineer-stats",
+      engineer?.user,
+      dateFrom,
+      dateTo,
+      effectivePods,
+      clients,
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({ user: engineer!.user });
       if (dateFrom) params.append("date_from", dateFrom);
       if (dateTo) params.append("date_to", dateTo);
+      if (effectivePods.length) params.append("pod", effectivePods.join(","));
+      if (clients.length) params.append("client", clients.join(","));
       const res = await fetch(`${API}/api/engineer-stats?${params}`, {
         headers: getAuthHeader(),
       });
@@ -219,7 +252,6 @@ export default function EngineerDrawer({
 
   const color = engineer ? getColor(engineer.user) : "#4F7EFF";
 
-  /* Merge Jira tickets + manual entries into unified rows */
   const jiraRows: DrawerRow[] = (ticketData?.tickets ?? []).map(
     (t: Ticket) => ({
       id: t.key,
@@ -252,7 +284,6 @@ export default function EngineerDrawer({
     url: "",
   }));
 
-  /* Sort combined rows by date desc */
   const allRows: DrawerRow[] = [...jiraRows, ...manualRows].sort((a, b) =>
     (b.updated ?? "").localeCompare(a.updated ?? ""),
   );
@@ -295,7 +326,6 @@ export default function EngineerDrawer({
           <strong>{engineer?.user}</strong> — {stats?.tickets ?? 0} Jira tickets
           · {stats?.manual_entries ?? 0} manual entries ·{" "}
           {formatNumber(Math.round((stats?.hours ?? 0) * 4) / 4)}h total.
-          Read-only view.
         </p>
       }
     >
@@ -305,7 +335,7 @@ export default function EngineerDrawer({
         rowKey="id"
         isLoading={isLoading}
         virtualize={false}
-        maxHeight={520}
+        maxHeight={490}
         stickyHeader
         emptyIcon="📭"
         emptyTitle="No activity found"

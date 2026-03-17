@@ -174,7 +174,7 @@ export default function TicketsPage() {
       </div>
 
       {/* AI Search */}
-      <div className={`${styles.aiWrap} fade-up-1`}>
+      {/* <div className={`${styles.aiWrap} fade-up-1`}>
         <div className={styles.aiInner}>
           <div className={styles.aiBadge}>
             <div className={styles.aiDot} />
@@ -205,7 +205,7 @@ export default function TicketsPage() {
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Filter bar */}
       <div className={`${styles.filterBar} fade-up-2`}>

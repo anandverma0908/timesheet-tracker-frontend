@@ -10,6 +10,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import styles from "./TeamPage.module.css";
 import EngineerDrawer from "./EngineerDrawer";
 import { SummaryByUser } from "@/types";
+import { useAuthStore } from "../auth/useAuthStore";
 
 export default function TeamPage() {
   const [search, setSearch] = useState("");
@@ -17,25 +18,29 @@ export default function TeamPage() {
     useState<SummaryByUser | null>(null);
   const debouncedSearch = useDebounce(search, 250);
   const filters = useFilterStore();
-  const { clearPods, togglePod, pods, clients } = useFilterStore();
+  const { pods, clients } = useFilterStore();
+  const getScopedPod = useAuthStore((s) => s.getScopedPod);
+  const scopedPod = getScopedPod();
+
+  // If role-scoped to a POD, override the multi-select with just that POD
+  const effectivePods = pods.length > 0 ? pods : scopedPod ? [scopedPod] : [];
 
   const { data, isLoading } = useQuery({
     queryKey: QUERY_KEYS.summary({
       dateFrom: filters.dateFrom,
       dateTo: filters.dateTo,
-      pods,
+      pods: effectivePods,
       clients,
     }),
     queryFn: () =>
       fetchSummary({
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
-        pods,
+        pods: effectivePods,
         clients,
       }),
   });
 
-  const allPods = [...new Set(data?.by_pod.map((p) => p.pod) ?? [])];
   const maxHours = Math.max(...(data?.by_user.map((u) => u.hours) ?? [1]));
 
   const engineers = (data?.by_user ?? [])
@@ -131,7 +136,7 @@ export default function TeamPage() {
               </div>
 
               <div className={styles.name}>{eng.user}</div>
-              <div className={styles.pod}>{eng.clients[0] ?? "—"}</div>
+              <div className={styles.pod}>{eng.title ?? "—"}</div>
 
               <div className={styles.stats}>
                 <div className={styles.stat}>

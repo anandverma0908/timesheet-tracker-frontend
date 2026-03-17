@@ -10,7 +10,7 @@ export function useDashboard() {
   const scopedPod = getScopedPod();
 
   // If role-scoped to a POD, override the multi-select with just that POD
-  const effectivePods = scopedPod ? [scopedPod] : pods;
+  const effectivePods = pods.length > 0 ? pods : scopedPod ? [scopedPod] : [];
 
   const params = {
     dateFrom,

@@ -55,10 +55,18 @@ export interface SummaryByPod {
   clients: string[]
 }
 
+export interface SummaryByIssueType {
+  issue_type: string
+  hours:      number
+  tickets:    number
+  pct:        number
+}
+
 export interface SummaryResponse {
-  by_user:       SummaryByUser[]
-  by_client:     SummaryByClient[]
-  by_pod:        SummaryByPod[]
+  by_user:        SummaryByUser[]
+  by_client:      SummaryByClient[]
+  by_pod:         SummaryByPod[]
+  by_issue_type:  SummaryByIssueType[]
   total_tickets: number
   total_hours:   number
 }
