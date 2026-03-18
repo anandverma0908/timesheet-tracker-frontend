@@ -3,6 +3,9 @@ import type { PersonRole } from "./types";
 import styles from "./ManualEntryPage.module.css";
 import { PiStarFourFill } from "react-icons/pi";
 import { RiArrowRightFill } from "react-icons/ri";
+import { TbKeyFilled } from "react-icons/tb";
+import { BsFillCalendar2EventFill } from "react-icons/bs";
+import { RiPriceTag3Fill } from "react-icons/ri";
 
 const SUGGESTIONS = [
   "Sprint planning 2h DPAI Colgate, then 4x 30min 1:1s with engineers",
@@ -117,16 +120,16 @@ export default function StepInput({
       {/* Tips */}
       <div className={styles.tips}>
         <div className={styles.tip}>
-          <span className={styles.tipIcon}>💡</span>Mention hours like "2h",
-          "30min", "1.5 hours"
+          <TbKeyFilled fontSize={14} />
+          Mention hours like "2h", "30min", "1.5 hours"
         </div>
         <div className={styles.tip}>
-          <span className={styles.tipIcon}>📅</span>Include dates like "Monday",
-          "Mar 14", "yesterday"
+          <BsFillCalendar2EventFill fontSize={14} />
+          Include dates like "Monday", "Mar 14", "yesterday"
         </div>
         <div className={styles.tip}>
-          <span className={styles.tipIcon}>🏷</span>Name PODs and clients as you
-          normally would — AI will match them
+          <RiPriceTag3Fill fontSize={14} />
+          Name PODs and clients as you normally would, AI will match them
         </div>
       </div>
     </div>

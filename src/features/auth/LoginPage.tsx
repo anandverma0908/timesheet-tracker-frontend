@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "./useAuthStore";
 import styles from "./LoginPage.module.css";
 import { MdEmail } from "react-icons/md";
+import { IoMdEye } from "react-icons/io";
+import { IoMdEyeOff } from "react-icons/io";
+import { FaLock } from "react-icons/fa";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -141,7 +144,7 @@ export default function LoginPage() {
             <div className={styles.field}>
               <label className={styles.label}>Password</label>
               <div className={styles.inputWrap}>
-                <span className={styles.inputIcon}>🔒</span>
+                <span className={styles.inputIcon}><FaLock /></span>
                 <input
                   className={`${styles.input} ${styles.inputWithPad} ${error ? styles.inputError : ""}`}
                   type={showPass ? "text" : "password"}
@@ -159,7 +162,7 @@ export default function LoginPage() {
                   onClick={() => setShowPass((v) => !v)}
                   tabIndex={-1}
                 >
-                  {showPass ? "🙈" : "👁"}
+                  {showPass ? <IoMdEyeOff fontSize={17} /> : <IoMdEye fontSize={17} />}
                 </button>
               </div>
             </div>

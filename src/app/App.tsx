@@ -9,14 +9,21 @@ import TeamPage from "@/features/team/TeamPage";
 import ExportPage from "@/features/export/ExportPage";
 import SettingsPage from "@/features/settings/SettingsPage";
 import ManualEntryPage from "@/features/manual-entry/ManualEntryPage";
+import UsersPage from "@/features/settings/UsersPage";
+import ChangePasswordPage from "@/features/settings/ChangePasswordPage";
 
 export default function App() {
   return (
     <Routes>
-      {/* Public route */}
+      {/* Public */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* All app routes — require login */}
+      {/* Requires login but NO shell — full screen */}
+      <Route element={<RequireAuth />}>
+        <Route path="/settings/password" element={<ChangePasswordPage />} />
+      </Route>
+
+      {/* All app routes — require login + shell */}
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
           <Route element={<RequireRole />}>
@@ -27,6 +34,7 @@ export default function App() {
             <Route path="/export" element={<ExportPage />} />
             <Route path="/manual-entry" element={<ManualEntryPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/admin/users" element={<UsersPage />} />
           </Route>
         </Route>
       </Route>

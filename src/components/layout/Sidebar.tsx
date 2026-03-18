@@ -7,6 +7,14 @@ import { QUERY_KEYS } from "@/config/queryKeys";
 import { getPodColor } from "@/config/themes";
 import { useAuthStore } from "@/features/auth/useAuthStore";
 import styles from "./Sidebar.module.css";
+import { FaUsers } from "react-icons/fa";
+import { TbKeyFilled } from "react-icons/tb";
+import { TbSettingsFilled } from "react-icons/tb";
+import { TbLayoutDashboardFilled } from "react-icons/tb";
+import { HiTicket } from "react-icons/hi2";
+import { RiTeamFill } from "react-icons/ri";
+import { FaSheetPlastic } from "react-icons/fa6";
+import { BiSolidFileExport } from "react-icons/bi";
 
 /* ── Multi-select filter section ─────────────────────────────────────────── */
 interface FilterSectionProps {
@@ -218,14 +226,14 @@ export default function Sidebar() {
         {/* Navigation */}
         <NavItem
           label="Dashboard"
-          icon="▦"
+          icon={<TbLayoutDashboardFilled />}
           active={location.pathname === "/dashboard"}
           onClick={() => navigate("/dashboard")}
         />
         {can("view:tickets") && (
           <NavItem
             label="Tickets"
-            icon="≡"
+            icon={<HiTicket />}
             active={location.pathname === "/tickets"}
             onClick={() => navigate("/tickets")}
           />
@@ -233,7 +241,7 @@ export default function Sidebar() {
         {can("view:teams") && (
           <NavItem
             label="Team"
-            icon="◎"
+            icon={<RiTeamFill />}
             active={location.pathname === "/team"}
             onClick={() => navigate("/team")}
           />
@@ -241,7 +249,7 @@ export default function Sidebar() {
         {can("entry:manual") && (
           <NavItem
             label="Timesheets"
-            icon="✦"
+            icon={<FaSheetPlastic />}
             active={location.pathname === "/manual-entry"}
             onClick={() => navigate("/manual-entry")}
           />
@@ -249,7 +257,7 @@ export default function Sidebar() {
         {can("export:all") && (
           <NavItem
             label="Export"
-            icon="↓"
+            icon={<BiSolidFileExport />}
             active={location.pathname === "/export"}
             onClick={() => navigate("/export")}
           />
@@ -280,16 +288,31 @@ export default function Sidebar() {
           maxVisible={5}
         />
 
+        <div className={styles.divider} />
+
         {can("manage:settings") && (
-          <>
-            <div className={styles.divider} />
-            <NavItem
-              label="Settings"
-              icon="⚙️"
-              active={location.pathname === "/settings"}
-              onClick={() => navigate("/settings")}
-            />
-          </>
+          <NavItem
+            label="Settings"
+            icon={<TbSettingsFilled />}
+            active={location.pathname === "/settings"}
+            onClick={() => navigate("/settings")}
+          />
+        )}
+        {!can("manage:users") && (
+          <NavItem
+            label="Change Password"
+            icon={<TbKeyFilled />}
+            active={location.pathname === "/settings/password"}
+            onClick={() => navigate("/settings/password")}
+          />
+        )}
+        {can("manage:users") && (
+          <NavItem
+            label="Users"
+            icon={<FaUsers />}
+            active={location.pathname === "/admin/users"}
+            onClick={() => navigate("/admin/users")}
+          />
         )}
       </div>
     </aside>
@@ -303,7 +326,7 @@ function NavItem({
   onClick,
 }: {
   label: string;
-  icon: string;
+  icon: any;
   active: boolean;
   onClick: () => void;
 }) {
@@ -312,7 +335,8 @@ function NavItem({
       className={`${styles.item} ${active ? styles.itemActive : ""}`}
       onClick={onClick}
     >
-      <span className={styles.icon}>{icon}</span>
+      {/* <span className={styles.icon}>{icon}</span> */}
+      {icon}
       <span className={styles.label}>{label}</span>
     </button>
   );

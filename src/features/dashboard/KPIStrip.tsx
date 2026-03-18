@@ -3,6 +3,11 @@ import { KPISkeleton } from "@/components/ui/Skeleton";
 import type { SummaryResponse } from "@/types";
 import styles from "./KPIStrip.module.css";
 import { useAuthStore } from "../auth/useAuthStore";
+import { PiClockCountdownFill } from "react-icons/pi";
+import { HiTicket } from "react-icons/hi2";
+import { RiTeamFill } from "react-icons/ri";
+import { SiFiles } from "react-icons/si";
+import { HiOfficeBuilding } from "react-icons/hi";
 
 interface KPIStripProps {
   summary: SummaryResponse | undefined;
@@ -21,51 +26,51 @@ export default function KPIStrip({ summary, isLoading }: KPIStripProps) {
 
   const kpis = [
     {
-      icon: "⏱",
+      icon: <PiClockCountdownFill />,
       label: "Total Hours",
       value: formatNumber(Math.round(summary?.total_hours ?? 0)),
-      trend: "+11.2%",
-      trendUp: true,
+      // trend: "+11.2%",
+      // trendUp: true,
       color: "var(--accent)",
       glow: "var(--accent-glow)",
     },
     {
-      icon: "🎫",
+      icon: <HiTicket />,
       label: "Tickets",
       value: formatNumber(summary?.total_tickets ?? 0),
-      trend: "+7.4%",
-      trendUp: true,
+      // trend: "+7.4%",
+      // trendUp: true,
       color: "var(--green)",
       glow: "var(--green-glow)",
     },
     ...(!can("view:own")
       ? [
           {
-            icon: "👥",
+            icon: <RiTeamFill />,
             label: "Engineers",
             value: formatNumber(engineers),
-            trend: "Full team",
-            trendUp: null,
+            // trend: "Full team",
+            // trendUp: null,
             color: "var(--amber)",
             glow: "var(--amber-glow)",
           },
         ]
       : []),
     {
-      icon: "📁",
+      icon: <SiFiles />,
       label: "PODs",
       value: String(pods),
-      trend: "Active",
-      trendUp: null,
+      // trend: "Active",
+      // trendUp: null,
       color: "var(--purple)",
       glow: "var(--purple-glow)",
     },
     {
-      icon: "🏢",
+      icon: <HiOfficeBuilding />,
       label: "Clients",
       value: String(clients),
-      trend: "+3 this FY",
-      trendUp: true,
+      // trend: "+3 this FY",
+      // trendUp: true,
       color: "var(--cyan)",
       glow: "var(--cyan-glow)",
     },
@@ -80,12 +85,13 @@ export default function KPIStrip({ summary, isLoading }: KPIStripProps) {
           style={{ "--kc": kpi.color, "--kg": kpi.glow } as React.CSSProperties}
         >
           <div className={styles.glowOrb} />
+          {/* {kpi.icon} */}
           <span className={styles.icon}>{kpi.icon}</span>
           <div className={styles.label}>{kpi.label}</div>
           <div className={styles.value} style={{ color: kpi.color }}>
             {kpi.value}
           </div>
-          <div
+          {/* <div
             className={`${styles.trend} ${
               kpi.trendUp === true
                 ? styles.trendUp
@@ -98,7 +104,7 @@ export default function KPIStrip({ summary, isLoading }: KPIStripProps) {
             {kpi.trendUp === false && "↓ "}
             {kpi.trendUp === null && "↔ "}
             {kpi.trend}
-          </div>
+          </div> */}
         </div>
       ))}
     </div>
